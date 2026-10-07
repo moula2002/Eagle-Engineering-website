@@ -19,7 +19,7 @@ export const SmartAssistant = () => {
     <>
       {/* WhatsApp Floating Button */}
       <a 
-        href="https://wa.me/919876543210" 
+        href="https://wa.me/919632144367" 
         target="_blank" 
         rel="noopener noreferrer"
         className="fixed bottom-6 right-6 w-14 h-14 bg-[#25D366] text-white rounded-full flex items-center justify-center shadow-lg hover:shadow-2xl hover:scale-110 transition-all duration-300 z-50 cursor-pointer"
@@ -76,7 +76,7 @@ export const SmartAssistant = () => {
                 ))}
                 
                 <a 
-                  href="https://wa.me/919876543210" 
+                  href="https://wa.me/919632144367" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="w-full flex items-center p-3 bg-white rounded-xl border border-gray-100 shadow-sm hover:border-[#25D366] hover:text-[#25D366] transition-all duration-200 group text-sm font-semibold text-[#0b2545]"
@@ -90,7 +90,7 @@ export const SmartAssistant = () => {
             </div>
             
             <div className="p-4 border-t border-gray-100 text-center">
-              <p className="text-xs text-gray-400">Prefer to call? <a href="tel:+919876543210" className="text-[var(--brand-red)] font-bold hover:underline">+91 98765 43210</a></p>
+              <p className="text-xs text-gray-400">Prefer to call? <a href="tel:+919632144367" className="text-[var(--brand-red)] font-bold hover:underline">+91 96321 44367</a></p>
             </div>
           </motion.div>
         )}

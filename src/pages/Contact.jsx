@@ -41,8 +41,8 @@ export const Contact = () => {
                 </div>
                 <div className="ml-6 flex flex-col items-start">
                   <h4 className="text-[16px] font-bold text-[#0b2545] mb-1">Phone</h4>
-                  <a href="tel:+919876543210" className="text-[15px] text-gray-500 font-light hover:text-[var(--brand-red)] transition-colors inline-block">+91 98765 43210</a>
-                  <a href="tel:+919876543211" className="text-[15px] text-gray-500 font-light hover:text-[var(--brand-red)] transition-colors inline-block">+91 98765 43211</a>
+                  <a href="tel:+918079667629" className="text-[15px] text-gray-500 font-light hover:text-[var(--brand-red)] transition-colors inline-block">+91 80-7966 7629 (Fax)</a>
+                  <a href="tel:+919632144367" className="text-[15px] text-gray-500 font-light hover:text-[var(--brand-red)] transition-colors inline-block">+91 96321 44367</a>
                 </div>
               </div>
 
@@ -52,8 +52,7 @@ export const Contact = () => {
                 </div>
                 <div className="ml-6 flex flex-col items-start">
                   <h4 className="text-[16px] font-bold text-[#0b2545] mb-1">Email</h4>
-                  <a href="mailto:info@eagleengineering.com" className="text-[15px] text-gray-500 font-light hover:text-[var(--brand-red)] transition-colors inline-block">info@eagleengineering.com</a>
-                  <a href="mailto:sales@eagleengineering.com" className="text-[15px] text-gray-500 font-light hover:text-[var(--brand-red)] transition-colors inline-block">sales@eagleengineering.com</a>
+                  <a href="mailto:info@eagleeng.in" className="text-[15px] text-gray-500 font-light hover:text-[var(--brand-red)] transition-colors inline-block">info@eagleeng.in</a>
                 </div>
               </div>
 
@@ -63,7 +62,13 @@ export const Contact = () => {
                 </div>
                 <div className="ml-6">
                   <h4 className="text-[16px] font-bold text-[#0b2545] mb-1">Address</h4>
-                  <p className="text-[15px] text-gray-500 font-light leading-relaxed">123 Industrial Area,<br />Coimbatore, Tamilnadu, India - 641XXX</p>
+                  <p className="text-[15px] text-gray-500 font-light leading-relaxed">
+                    <strong>EAGLE ENGINEERING</strong><br />
+                    No.68/69, Shivoham, Rajatadri<br />
+                    Layout, 2nd Cross Kothnurdinne<br />
+                    Main Road, JP Nagar 8th Phase,<br />
+                    Bengaluru- 560078
+                  </p>
                 </div>
               </div>
             </div>

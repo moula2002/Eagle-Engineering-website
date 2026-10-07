@@ -72,19 +72,19 @@ export const Footer = () => {
                 <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center shrink-0 group-hover:bg-[var(--brand-red)] transition-colors duration-300">
                   <MapPin className="w-4 h-4 text-[var(--brand-red)] group-hover:text-white" />
                 </div>
-                <span className="mt-1">123 Industrial Park Drive,<br />Engineering District,<br />City, State 12345</span>
+                <span className="mt-1">EAGLE ENGINEERING<br />No.68/69, Shivoham, Rajatadri<br />Layout, 2nd Cross Kothnurdinne<br />Main Road, JP Nagar 8th Phase,<br />Bengaluru- 560078</span>
               </li>
               <li className="flex items-center space-x-3 text-sm text-gray-400 font-light group">
                 <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center shrink-0 group-hover:bg-[var(--brand-red)] transition-colors duration-300">
                   <Phone className="w-4 h-4 text-[var(--brand-red)] group-hover:text-white" />
                 </div>
-                <a href="tel:+15551234567" className="hover:text-[var(--brand-red)] transition-colors">+1 (555) 123-4567</a>
+                <a href="tel:+919632144367" className="hover:text-[var(--brand-red)] transition-colors">+91 96321 44367</a>
               </li>
               <li className="flex items-center space-x-3 text-sm text-gray-400 font-light group">
                 <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center shrink-0 group-hover:bg-[var(--brand-red)] transition-colors duration-300">
                   <Mail className="w-4 h-4 text-[var(--brand-red)] group-hover:text-white" />
                 </div>
-                <a href="mailto:info@eagleengineering.com" className="hover:text-[var(--brand-red)] transition-colors">info@eagleengineering.com</a>
+                <a href="mailto:info@eagleeng.in" className="hover:text-[var(--brand-red)] transition-colors">info@eagleeng.in</a>
               </li>
             </ul>
           </div>
