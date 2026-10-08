@@ -103,6 +103,33 @@ export const Contact = () => {
                 </div>
               </div>
             </div>
+            
+            {/* Social Media Links */}
+            <div className="pt-8 mt-10 border-t border-gray-200">
+              <h4 className="text-[16px] font-bold text-[#0b2545] mb-4">Follow Us</h4>
+              <div className="flex space-x-4">
+                <a href="https://www.facebook.com/ieagleng/?modal=admin_todo_tour" target="_blank" rel="noopener noreferrer" className="w-11 h-11 rounded-full bg-white border border-gray-200 flex items-center justify-center hover:bg-[var(--brand-red)] hover:border-[var(--brand-red)] transition-all duration-300 group shadow-sm hover:shadow-[0_4px_14px_0_rgba(230,32,32,0.39)] hover:-translate-y-1">
+                  <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-gray-500 group-hover:text-white transition-colors">
+                    <path d="M12 2.04C6.5 2.04 2 6.53 2 12.06C2 17.06 5.66 21.21 10.44 21.96V14.96H7.9V12.06H10.44V9.85C10.44 7.34 11.93 5.96 14.22 5.96C15.31 5.96 16.45 6.15 16.45 6.15V8.62H15.19C13.95 8.62 13.56 9.39 13.56 10.18V12.06H16.34L15.89 14.96H13.56V21.96A10 10 0 0 0 22 12.06C22 6.53 17.5 2.04 12 2.04Z"/>
+                  </svg>
+                </a>
+                <a href="https://x.com/ieagleng" target="_blank" rel="noopener noreferrer" className="w-11 h-11 rounded-full bg-white border border-gray-200 flex items-center justify-center hover:bg-[var(--brand-red)] hover:border-[var(--brand-red)] transition-all duration-300 group shadow-sm hover:shadow-[0_4px_14px_0_rgba(230,32,32,0.39)] hover:-translate-y-1">
+                  <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-gray-500 group-hover:text-white transition-colors">
+                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                  </svg>
+                </a>
+                <a href="https://www.instagram.com/ieagleng/" target="_blank" rel="noopener noreferrer" className="w-11 h-11 rounded-full bg-white border border-gray-200 flex items-center justify-center hover:bg-[var(--brand-red)] hover:border-[var(--brand-red)] transition-all duration-300 group shadow-sm hover:shadow-[0_4px_14px_0_rgba(230,32,32,0.39)] hover:-translate-y-1">
+                  <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-gray-500 group-hover:text-white transition-colors">
+                    <path d="M7.8 2H16.2C19.4 2 22 4.6 22 7.8V16.2C22 19.4 19.4 22 16.2 22H7.8C4.6 22 2 19.4 2 16.2V7.8C2 4.6 4.6 2 7.8 2ZM7.6 4C5.6 4 4 5.6 4 7.6V16.4C4 18.4 5.6 20 7.6 20H16.4C18.4 20 20 18.4 20 16.4V7.6C20 5.6 18.4 4 16.4 4H7.6ZM12 6.8C14.8719 6.8 17.2 9.12812 17.2 12C17.2 14.8719 14.8719 17.2 12 17.2C9.12812 17.2 6.8 14.8719 6.8 12C6.8 9.12812 9.12812 6.8 12 6.8ZM12 8.8C10.2327 8.8 8.8 10.2327 8.8 12C8.8 13.7673 10.2327 15.2 12 15.2C13.7673 15.2 15.2 13.7673 15.2 12C15.2 10.2327 13.7673 8.8 12 8.8ZM17.2 5.6C17.8627 5.6 18.4 6.13726 18.4 6.8C18.4 7.46274 17.8627 8 17.2 8C16.5373 8 16 7.46274 16 6.8C16 6.13726 16.5373 5.6 17.2 5.6Z"/>
+                  </svg>
+                </a>
+                <a href="https://www.linkedin.com/company/eaglefasteners/" target="_blank" rel="noopener noreferrer" className="w-11 h-11 rounded-full bg-white border border-gray-200 flex items-center justify-center hover:bg-[var(--brand-red)] hover:border-[var(--brand-red)] transition-all duration-300 group shadow-sm hover:shadow-[0_4px_14px_0_rgba(230,32,32,0.39)] hover:-translate-y-1">
+                  <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-gray-500 group-hover:text-white transition-colors">
+                    <path d="M19 3A2 2 0 0 1 21 5V19A2 2 0 0 1 19 21H5A2 2 0 0 1 3 19V5A2 2 0 0 1 5 3H19M18.5 18.5V13.2A3.26 3.26 0 0 0 15.24 9.94C14 9.94 13.4 10.61 13 11.23V10.13H10.87V18.5H13V13.82C13 13.19 13.52 12.67 14.15 12.67 14.78 12.67 15.3 13.19 15.3 13.82V18.5H17.43M8.11 18.5V10.13H5.97V18.5H8.11M7.04 5.96C6.27 5.96 5.64 6.59 5.64 7.36 5.64 8.13 6.27 8.76 7.04 8.76 7.81 8.76 8.44 8.13 8.44 7.36 8.44 6.59 7.81 5.96 7.04 5.96Z"/>
+                  </svg>
+                </a>
+              </div>
+            </div>
           </motion.div>
 
           {/* Right Side: Form */}
