@@ -1,28 +1,37 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, ChevronRight } from 'lucide-react';
 import logoNew from '../assets/logo_new.png';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getCategories } from '../api/api';
+import { getCategories, getSubCategories } from '../api/api';
 
 export const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [categories, setCategories] = useState([]);
+  const [subCategories, setSubCategories] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const location = useLocation();
   const activePath = location.pathname;
 
   useEffect(() => {
-    const fetchCategories = async () => {
+    const fetchData = async () => {
       try {
-        const json = await getCategories();
-        if (json.success) setCategories(json.data);
+        const [catsRes, subCatsRes] = await Promise.all([
+          getCategories(),
+          getSubCategories()
+        ]);
+        if (catsRes.success) setCategories(catsRes.data);
+        if (subCatsRes.success) setSubCategories(subCatsRes.data);
+        console.log("NAVBAR DATA:", {
+          categories: catsRes.data,
+          subCategories: subCatsRes.data
+        });
       } catch (error) {
-        console.error('Failed to fetch categories:', error);
+        console.error('Failed to fetch navbar data:', error);
       }
     };
-    fetchCategories();
+    fetchData();
   }, []);
 
   useEffect(() => {
@@ -110,20 +119,44 @@ export const Navbar = () => {
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: 10 }}
                             transition={{ duration: 0.2 }}
-                            className="absolute top-full left-1/2 -translate-x-1/2 pt-4 w-56"
+                            className="absolute top-full left-1/2 -translate-x-1/2 pt-4 w-64 z-50"
                           >
-                            <div className="bg-white rounded-2xl shadow-[0_10px_40px_rgb(0,0,0,0.1)] border border-gray-100 overflow-hidden p-2 flex flex-col relative before:content-[''] before:absolute before:-top-2 before:left-1/2 before:-translate-x-1/2 before:border-8 before:border-transparent before:border-b-white">
-                              {categories.length > 0 ? categories.map((cat, idx) => (
-                                <Link
-                                  key={idx}
-                                  to="/products"
-                                  state={{ selectedCategory: cat.name }}
-                                  onClick={() => setShowDropdown(false)}
-                                  className="px-4 py-2.5 text-sm font-medium text-gray-600 hover:text-[var(--brand-red)] hover:bg-gray-50 rounded-xl transition-colors block text-left"
-                                >
-                                  {cat.name}
-                                </Link>
-                              )) : (
+                            <div className="bg-[var(--brand-red)] shadow-xl flex flex-col relative">
+                                {categories.length > 0 ? categories.map((cat, idx) => {
+                                  const categorySubCats = subCategories.filter(sc => sc.category && (sc.category._id === cat._id || sc.category.name === cat.name));
+                                  return (
+                                    <div key={idx} className="group relative border-b border-white/20 last:border-b-0">
+                                      <Link
+                                        to={categorySubCats.length > 0 ? "/subcategories" : "/products"}
+                                        state={{ selectedCategory: cat.name }}
+                                        onClick={() => setShowDropdown(false)}
+                                        className="px-5 py-3 text-[15px] font-medium text-white hover:bg-white/10 transition-colors flex justify-between items-center w-full"
+                                      >
+                                        {cat.name}
+                                        {categorySubCats.length > 0 && <ChevronRight className="w-4 h-4 text-white opacity-70" />}
+                                      </Link>
+                                      
+                                      {/* Subcategories Flyout */}
+                                      {categorySubCats.length > 0 && (
+                                        <div className="absolute top-0 left-full w-64 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[60]">
+                                          <div className="bg-[var(--brand-red)] shadow-xl border-l border-white/20 flex flex-col h-full min-h-[100%]">
+                                            {categorySubCats.map((sub, sIdx) => (
+                                              <Link
+                                                key={sIdx}
+                                                to="/products"
+                                                state={{ selectedCategory: cat.name, selectedSubCategory: sub.name }}
+                                                onClick={() => setShowDropdown(false)}
+                                                className="px-5 py-3 text-[15px] font-medium text-white hover:bg-white/10 transition-colors border-b border-white/20 last:border-b-0 block w-full"
+                                              >
+                                                {sub.name}
+                                              </Link>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                              }) : (
                                 <div className="px-4 py-3 text-sm text-gray-400 italic text-center">No categories</div>
                               )}
                             </div>

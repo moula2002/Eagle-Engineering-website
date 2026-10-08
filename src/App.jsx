@@ -9,6 +9,7 @@ import { ScrollToTop } from './components/ScrollToTop';
 const Home = lazy(() => import('./pages/Home').then(module => ({ default: module.Home })));
 const About = lazy(() => import('./pages/About').then(module => ({ default: module.About })));
 const Products = lazy(() => import('./pages/Products').then(module => ({ default: module.Products })));
+const SubCategories = lazy(() => import('./pages/SubCategories').then(module => ({ default: module.SubCategories })));
 const ProductDetails = lazy(() => import('./pages/ProductDetails').then(module => ({ default: module.ProductDetails })));
 const Download = lazy(() => import('./pages/Download').then(module => ({ default: module.Download })));
 const Quality = lazy(() => import('./pages/Quality').then(module => ({ default: module.Quality })));
@@ -34,6 +35,7 @@ function App() {
               <Route path="/" element={<Home />} />
               <Route path="/about" element={<About />} />
               <Route path="/products" element={<Products />} />
+              <Route path="/subcategories" element={<SubCategories />} />
               <Route path="/products/:id" element={<ProductDetails />} />
               <Route path="/download" element={<Download />} />
               <Route path="/quality" element={<Quality />} />

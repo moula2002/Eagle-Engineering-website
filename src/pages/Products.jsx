@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Search } from 'lucide-react';
-import { Link, useLocation } from 'react-router-dom';
+import { Search, FolderTree } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import fastener1 from '../assets/fastener_1.png';
 import { getProducts, getCategories, getSubCategories, getImageUrl } from '../api/api';
@@ -12,13 +12,19 @@ export const Products = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const location = useLocation();
+  const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState(location.state?.selectedCategory || 'All Products');
-  const [selectedSubCategory, setSelectedSubCategory] = useState('All');
+  const [selectedSubCategory, setSelectedSubCategory] = useState(location.state?.selectedSubCategory || 'All');
+
+  useEffect(() => {
+    if (location.state?.selectedCategory) setSelectedCategory(location.state.selectedCategory);
+    if (location.state?.selectedSubCategory) setSelectedSubCategory(location.state.selectedSubCategory);
+  }, [location.state]);
   
   useEffect(() => {
     if (location.state?.selectedCategory) {
       setSelectedCategory(location.state.selectedCategory);
-      setSelectedSubCategory('All');
+      setSelectedSubCategory(location.state.selectedSubCategory || 'All');
     }
   }, [location.state]);
   useEffect(() => {
@@ -48,6 +54,10 @@ export const Products = () => {
   const currentSubCategories = selectedCategory === 'All Products' 
     ? [] 
     : subCategoriesList.filter(sc => sc.category && sc.category.name === selectedCategory);
+
+  const selectedSubCategoryData = selectedSubCategory === 'All'
+    ? null
+    : subCategoriesList.find(sc => sc.name === selectedSubCategory);
 
   // Filter products based on search query, category, and subcategory
   const filteredProducts = productsList.filter(p => {
@@ -131,51 +141,76 @@ export const Products = () => {
             {/* Main Content */}
             <div className="w-full md:w-3/4 flex flex-col">
               
-              {/* Subcategories Filter Chips */}
-              {currentSubCategories.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-8">
-                  <button
-                    onClick={() => setSelectedSubCategory('All')}
-                    className={`px-5 py-2 rounded-full text-sm font-bold transition-all ${
-                      selectedSubCategory === 'All'
-                        ? 'bg-[#0b2545] text-white shadow-md'
-                        : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
-                    }`}
-                  >
-                    All {selectedCategory}
-                  </button>
+              {/* Subcategories Grid (shown when 'All' is selected) */}
+              {selectedSubCategory === 'All' && currentSubCategories.length > 0 && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
                   {currentSubCategories.map((sub, idx) => (
-                    <button
+                    <button 
                       key={idx}
                       onClick={() => setSelectedSubCategory(sub.name)}
-                      className={`px-5 py-2 rounded-full text-sm font-bold transition-all ${
-                        selectedSubCategory === sub.name
-                          ? 'bg-[#0b2545] text-white shadow-md'
-                          : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
-                      }`}
+                      className="bg-white rounded-2xl border border-gray-100 overflow-hidden group shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] hover:-translate-y-2 transition-all duration-300 text-left w-full flex flex-col items-center justify-center p-8"
                     >
-                      {sub.name}
+                      {sub.image ? (
+                        <img 
+                          src={getImageUrl(sub.image)} 
+                          alt={sub.name}
+                          className="h-32 w-32 object-contain mb-6 group-hover:scale-110 transition-transform duration-500"
+                        />
+                      ) : (
+                        <div className="h-32 w-32 mb-6 rounded-full bg-gray-50 flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
+                          <FolderTree className="w-10 h-10 text-[var(--brand-red)] opacity-50" />
+                        </div>
+                      )}
+                      <h3 className="text-xl font-bold text-[#0b2545] group-hover:text-[var(--brand-red)] transition-colors tracking-wide text-center">{sub.name}</h3>
+                      {sub.description && (
+                        <p className="text-sm text-gray-500 mt-3 text-center line-clamp-2 leading-relaxed">{sub.description}</p>
+                      )}
                     </button>
                   ))}
                 </div>
               )}
 
-              <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.5, delay: 0.3 }}
-                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"
-              >
-                {loading ? (
-                  <div className="col-span-full py-20 flex justify-center">
-                    <div className="w-10 h-10 border-4 border-gray-200 border-t-[var(--brand-red)] rounded-full animate-spin"></div>
+              {/* Subcategory Details Banner */}
+              {selectedSubCategoryData && (selectedSubCategoryData.image || selectedSubCategoryData.description) && (
+                <motion.div 
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-gray-50 border border-gray-100 rounded-2xl p-6 mb-8 flex flex-col md:flex-row items-center md:items-start gap-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)]"
+                >
+                  {selectedSubCategoryData.image && (
+                    <img 
+                      src={getImageUrl(selectedSubCategoryData.image)} 
+                      alt={selectedSubCategoryData.name} 
+                      className="w-32 h-32 object-contain rounded-xl bg-white border border-gray-100 p-2 shadow-sm"
+                    />
+                  )}
+                  <div className="flex-1 text-center md:text-left">
+                    <h4 className="text-xl font-bold text-[#0b2545] mb-2">{selectedSubCategoryData.name}</h4>
+                    {selectedSubCategoryData.description && (
+                      <p className="text-gray-600 text-sm leading-relaxed">{selectedSubCategoryData.description}</p>
+                    )}
                   </div>
-                ) : filteredProducts.length === 0 ? (
-                  <div className="col-span-full py-20 text-center text-gray-500">
-                    No products found matching your search.
-                  </div>
-                ) : (
-                  filteredProducts.map((p, idx) => (
+                </motion.div>
+              )}
+
+              {/* Products Grid (shown when a specific subcategory is selected, or if there are no subcategories) */}
+              {!(selectedSubCategory === 'All' && currentSubCategories.length > 0) && (
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.5, delay: 0.3 }}
+                  className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"
+                >
+                  {loading ? (
+                    <div className="col-span-full py-20 flex justify-center">
+                      <div className="w-10 h-10 border-4 border-gray-200 border-t-[var(--brand-red)] rounded-full animate-spin"></div>
+                    </div>
+                  ) : filteredProducts.length === 0 ? (
+                    <div className="col-span-full py-20 text-center text-gray-500">
+                      No products found matching your search.
+                    </div>
+                  ) : (
+                    filteredProducts.map((p, idx) => (
                   <Link 
                     key={idx} 
                     to={`/products/${p._id}`}
@@ -198,7 +233,8 @@ export const Products = () => {
                     </div>
                   </Link>
                 )))}
-              </motion.div>
+                </motion.div>
+              )}
             </div>
 
           </div>
