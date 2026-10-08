@@ -262,22 +262,23 @@ export const Home = () => {
             </Link>
           </motion.div>
           
-          <motion.div 
-            variants={staggerContainer}
-            initial={skipAnimation ? "visible" : "hidden"}
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.1 }}
-            className="flex flex-wrap justify-center gap-x-8 gap-y-12"
-          >
-            {loading ? (
-              <div className="w-full py-10 flex justify-center">
-                <div className="w-8 h-8 border-4 border-gray-200 border-t-[var(--brand-red)] rounded-full animate-spin"></div>
-              </div>
-            ) : productsList.length === 0 ? (
-              <div className="w-full py-20 text-center text-gray-500 font-medium">
-                No products available at the moment.
-              </div>
-            ) : productsList.slice(0, 5).map((p, idx) => (
+          {loading ? (
+            <div className="w-full py-10 flex justify-center">
+              <div className="w-8 h-8 border-4 border-gray-200 border-t-[var(--brand-red)] rounded-full animate-spin"></div>
+            </div>
+          ) : productsList.length === 0 ? (
+            <div className="w-full py-20 text-center text-gray-500 font-medium">
+              No products available at the moment.
+            </div>
+          ) : (
+            <motion.div 
+              variants={staggerContainer}
+              initial={skipAnimation ? "visible" : "hidden"}
+              whileInView="visible"
+              viewport={{ once: true, amount: 0.1 }}
+              className="flex flex-wrap justify-center gap-x-8 gap-y-12"
+            >
+              {productsList.slice(0, 5).map((p, idx) => (
               <motion.div key={idx} variants={itemVariant} id={`product-${p._id}`}>
                 <motion.div 
                   className="flex flex-col items-center group w-44 md:w-48 cursor-pointer"
@@ -309,8 +310,9 @@ export const Home = () => {
                   </Link>
                 </motion.div>
               </motion.div>
-            ))}
-          </motion.div>
+              ))}
+            </motion.div>
+          )}
         </div>
       </section>
 

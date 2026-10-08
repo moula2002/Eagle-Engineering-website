@@ -226,11 +226,12 @@ export const ProductDetails = () => {
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Link>
               
-              <button 
+              <Link 
+                to="/download"
                 className="inline-flex justify-center items-center px-8 py-3.5 bg-white border border-gray-200 text-[#0b2545] text-sm font-bold rounded-xl hover:bg-gray-50 transition-all uppercase tracking-wider w-full sm:w-auto shadow-[0_4px_14px_0_rgb(0,0,0,0.04)] hover:shadow-[0_6px_20px_rgb(0,0,0,0.08)] hover:-translate-y-0.5"
               >
                 Download Catalog
-              </button>
+              </Link>
             </div>
           </motion.div>
 
