@@ -8,20 +8,34 @@ export const getImageUrl = (imagePath) => {
   return imagePath;
 };
 
+let productsCache = null;
+
 export const getProducts = async () => {
+  if (productsCache) return productsCache;
   try {
     const response = await fetch(`${API_URL}/products`);
-    return await response.json();
+    const data = await response.json();
+    if (data.success) {
+      productsCache = data;
+    }
+    return data;
   } catch (error) {
     console.error('Error fetching products:', error);
     throw error;
   }
 };
 
+const productDetailsCache = {};
+
 export const getProductById = async (id) => {
+  if (productDetailsCache[id]) return productDetailsCache[id];
   try {
     const response = await fetch(`${API_URL}/products/${id}`);
-    return await response.json();
+    const data = await response.json();
+    if (data.success) {
+      productDetailsCache[id] = data;
+    }
+    return data;
   } catch (error) {
     console.error('Error fetching product by ID:', error);
     throw error;
