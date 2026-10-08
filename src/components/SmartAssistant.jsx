@@ -22,7 +22,7 @@ export const SmartAssistant = () => {
         href="https://wa.me/919632144367" 
         target="_blank" 
         rel="noopener noreferrer"
-        className="fixed bottom-6 left-6 w-14 h-14 bg-[#25D366] text-white rounded-full flex items-center justify-center shadow-lg hover:shadow-2xl hover:scale-110 transition-all duration-300 z-50 cursor-pointer"
+        className="fixed bottom-6 right-6 w-14 h-14 bg-[#25D366] text-white rounded-full flex items-center justify-center shadow-lg hover:shadow-2xl hover:scale-110 transition-all duration-300 z-50 cursor-pointer"
         aria-label="Connect on WhatsApp"
       >
         <MessageCircle className="w-7 h-7" />
@@ -31,7 +31,7 @@ export const SmartAssistant = () => {
       {/* Smart Assistant Toggle Button */}
       <button 
         onClick={toggleAssistant}
-        className="fixed bottom-24 left-6 w-14 h-14 bg-[#0b2545] text-white rounded-full flex items-center justify-center shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-2xl hover:scale-110 transition-all duration-300 z-50 group"
+        className="fixed bottom-24 right-6 w-14 h-14 bg-[#0b2545] text-white rounded-full flex items-center justify-center shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-2xl hover:scale-110 transition-all duration-300 z-50 group"
         aria-label="Smart Assistant"
       >
         {isOpen ? (
@@ -49,7 +49,7 @@ export const SmartAssistant = () => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.9 }}
             transition={{ duration: 0.2 }}
-            className="fixed bottom-40 left-6 w-80 bg-white rounded-2xl shadow-[0_20px_40px_rgb(0,0,0,0.16)] border border-gray-100 z-50 overflow-hidden"
+            className="fixed bottom-40 right-6 w-80 bg-white rounded-2xl shadow-[0_20px_40px_rgb(0,0,0,0.16)] border border-gray-100 z-50 overflow-hidden"
           >
             <div className="bg-[#0b2545] p-5 text-white">
               <h4 className="font-bold font-heading tracking-wide mb-1 flex items-center">
