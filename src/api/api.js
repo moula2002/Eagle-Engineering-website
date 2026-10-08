@@ -40,7 +40,7 @@ export const getCategories = async () => {
 
 export const getSubCategories = async () => {
   try {
-    const response = await fetch(`${API_URL}/subcategories`);
+    const response = await fetch(`${API_URL}/sub-categories`);
     return await response.json();
   } catch (error) {
     console.error('Error fetching subcategories:', error);
