@@ -1,11 +1,30 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import fastener1 from '../assets/fastener_1.png';
-import fastener2 from '../assets/fastener_2.png';
+import { getProducts, getImageUrl } from '../api/api';
 
 export const Products = () => {
+  const [productsList, setProductsList] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const json = await getProducts();
+        if (json.success) {
+          setProductsList(json.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch products:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProducts();
+  }, []);
   const categories = [
     'All Products',
     'Industrial Gears',
@@ -15,17 +34,10 @@ export const Products = () => {
     'Custom Solutions'
   ];
 
-  const productsList = [
-    { name: 'Spur Gears', image: fastener1 },
-    { name: 'Helical Gears', image: fastener2 },
-    { name: 'Bevel Gears', image: fastener1 },
-    { name: 'Shaft Components', image: fastener2 },
-    { name: 'Flanges', image: fastener1 },
-    { name: 'Couplings', image: fastener2 },
-    { name: 'Precision Parts', image: fastener1 },
-    { name: 'Custom Components', image: fastener2 },
-    { name: 'Other Parts', image: fastener1 },
-  ];
+  // Filter products based on search query
+  const filteredProducts = productsList.filter(p => 
+    p.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div className="bg-white min-h-screen">
@@ -56,6 +68,8 @@ export const Products = () => {
               <div className="flex w-full md:w-96 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-xl overflow-hidden">
                 <input 
                   type="text" 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search products..." 
                   className="flex-grow px-5 py-3.5 border-none focus:outline-none bg-white text-[15px]"
                 />
@@ -99,10 +113,19 @@ export const Products = () => {
                 transition={{ duration: 0.5, delay: 0.3 }}
                 className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"
               >
-                {productsList.map((p, idx) => (
+                {loading ? (
+                  <div className="col-span-full py-20 flex justify-center">
+                    <div className="w-10 h-10 border-4 border-gray-200 border-t-[var(--brand-red)] rounded-full animate-spin"></div>
+                  </div>
+                ) : filteredProducts.length === 0 ? (
+                  <div className="col-span-full py-20 text-center text-gray-500">
+                    No products found matching your search.
+                  </div>
+                ) : (
+                  filteredProducts.map((p, idx) => (
                   <Link 
                     key={idx} 
-                    to={`/products/${p.name.toLowerCase().replace(/ /g, '-')}`}
+                    to={`/products/${p._id}`}
                     className="bg-white rounded-2xl border border-gray-100 overflow-hidden group shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] hover:-translate-y-2 transition-all duration-300 block relative"
                   >
                     <div className="absolute top-4 right-4 bg-white/90 backdrop-blur rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow-sm text-[var(--brand-red)]">
@@ -111,16 +134,17 @@ export const Products = () => {
                     <div className="h-56 w-full bg-white p-8 flex items-center justify-center border-b border-gray-50 relative overflow-hidden">
                       <div className="absolute inset-0 bg-gradient-to-t from-gray-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
                       <img 
-                        src={p.image} 
+                        src={getImageUrl(p.mainImage) || fastener1} 
                         alt={p.name}
-                        className="max-h-full object-contain opacity-90 group-hover:scale-110 transition-transform duration-500 relative z-10"
+                        className="max-h-full object-contain group-hover:scale-110 transition-transform duration-500 relative z-10"
                       />
                     </div>
                     <div className="p-5 text-center bg-white group-hover:bg-gray-50/50 transition-colors">
                       <h3 className="text-[16px] font-bold text-[#0b2545] group-hover:text-[var(--brand-red)] transition-colors tracking-wide">{p.name}</h3>
+                      {p.category && <p className="text-xs text-gray-400 mt-1 uppercase tracking-wider">{p.category.name}</p>}
                     </div>
                   </Link>
-                ))}
+                )))}
               </motion.div>
             </div>
 

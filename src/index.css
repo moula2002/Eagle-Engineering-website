@@ -43,6 +43,9 @@ body {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+  will-change: transform, backdrop-filter;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 .dark-glass-effect {
@@ -50,6 +53,9 @@ body {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  will-change: transform, backdrop-filter;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 /* Custom Scrollbar */

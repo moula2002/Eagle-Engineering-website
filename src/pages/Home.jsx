@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Hero } from '../components/Hero';
 import { ArrowRight, Play, Car, Plane, Zap, Factory, Award, Users, Box, Percent } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -11,20 +11,27 @@ import logo4 from '../assets/client_logo_4.png';
 import logo5 from '../assets/client_logo_5.png';
 import fastener1 from '../assets/fastener_1.png';
 import fastener2 from '../assets/fastener_2.png';
+import { getProducts, getImageUrl } from '../api/api';
 
 export const Home = () => {
-  const products = [
-    { name: 'BDN Fasteners', image: fastener1 },
-    { name: 'Frame Fixing Screws', image: fastener2 },
-    { name: 'Zinc Fasteners', image: fastener1 },
-    { name: 'CSK Head Screws', image: fastener2 },
-    { name: 'Wedge Anchors', image: fastener1 },
-    { name: 'Truss Head Screws', image: fastener2 },
-    { name: 'Pan Head Screws', image: fastener1 },
-    { name: 'Drywall Screws', image: fastener2 },
-    { name: 'Chipboard Screws', image: fastener1 },
-    { name: 'Metal Fasteners', image: fastener2 }
-  ];
+  const [productsList, setProductsList] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const json = await getProducts();
+        if (json.success) {
+          setProductsList(json.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch products:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProducts();
+  }, []);
 
   const staggerContainer = {
     hidden: { opacity: 0 },
@@ -85,7 +92,7 @@ export const Home = () => {
             >
               <div className="absolute inset-0 bg-[var(--brand-blue)] rounded-2xl rotate-3 scale-105 opacity-10"></div>
               <div className="bg-white p-2 rounded-2xl shadow-[0_20px_40px_rgb(0,0,0,0.1)] relative z-10 overflow-hidden group">
-                <img src="https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80" alt="Precision Engineering" className="w-full h-[400px] object-cover rounded-xl group-hover:scale-105 transition-transform duration-700" />
+                <img src="https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80" alt="Precision Engineering" className="w-full h-[400px] object-cover rounded-xl group-hover:scale-105 transition-transform duration-700" loading="lazy" decoding="async" />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#0b2545]/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-xl pointer-events-none"></div>
               </div>
               
@@ -240,7 +247,11 @@ export const Home = () => {
             viewport={{ once: true, margin: "-100px" }}
             className="flex flex-wrap justify-center gap-x-8 gap-y-12"
           >
-            {products.slice(0, 5).map((p, idx) => (
+            {loading ? (
+              <div className="w-full py-10 flex justify-center">
+                <div className="w-8 h-8 border-4 border-gray-200 border-t-[var(--brand-red)] rounded-full animate-spin"></div>
+              </div>
+            ) : productsList.slice(0, 5).map((p, idx) => (
               <motion.div 
                 key={idx} 
                 variants={itemVariant} 
@@ -253,13 +264,15 @@ export const Home = () => {
                   delay: idx * 0.2 // Stagger the floating effect
                 }}
               >
-                <div className="relative w-40 h-40 md:w-44 md:h-44 flex items-center justify-center hover:-translate-y-2 transition-transform duration-300">
+                <Link to={`/products/${p._id}`} className="relative w-40 h-40 md:w-44 md:h-44 flex items-center justify-center hover:-translate-y-2 transition-transform duration-300">
                   <svg className="absolute inset-0 w-full h-full text-[var(--brand-red)] drop-shadow-sm" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M100 5C125 5 135 15 155 25C175 35 195 55 195 100C195 145 175 165 155 175C135 185 125 195 100 195C75 195 65 185 45 175C25 165 5 145 5 100C5 55 25 35 45 25C65 15 75 5 100 5Z" stroke="currentColor" strokeWidth="4" fill="white" />
                   </svg>
-                  <img src={p.image} alt={p.name} className="w-24 h-24 md:w-28 md:h-28 object-contain relative z-10 mix-blend-multiply group-hover:scale-110 transition-transform duration-300" />
-                </div>
-                <h3 className="text-center font-bold text-[#0b2545] mt-4 text-sm md:text-[15px] px-2 group-hover:text-[var(--brand-red)] transition-colors">{p.name}</h3>
+                  <img src={getImageUrl(p.mainImage) || fastener1} alt={p.name} className="w-24 h-24 md:w-28 md:h-28 object-contain relative z-10 mix-blend-multiply group-hover:scale-110 transition-transform duration-300" loading="lazy" decoding="async" />
+                </Link>
+                <Link to={`/products/${p._id}`}>
+                  <h3 className="text-center font-bold text-[#0b2545] mt-4 text-sm md:text-[15px] px-2 group-hover:text-[var(--brand-red)] transition-colors">{p.name}</h3>
+                </Link>
               </motion.div>
             ))}
           </motion.div>
@@ -285,7 +298,7 @@ export const Home = () => {
             >
               {[logo1, logo2, logo3, logo4, logo5].map((logo, idx) => (
                 <div key={idx} className="flex items-center justify-center w-36 h-20 shrink-0 mix-blend-multiply opacity-90 hover:opacity-100 hover:scale-110 transition-all duration-300">
-                  <img src={logo} alt={`Client Brand ${idx + 1}`} className="max-w-full max-h-full object-contain drop-shadow-sm" />
+                  <img src={logo} alt={`Client Brand ${idx + 1}`} className="max-w-full max-h-full object-contain drop-shadow-sm" loading="lazy" decoding="async" />
                 </div>
               ))}
             </motion.div>
@@ -298,7 +311,7 @@ export const Home = () => {
             >
               {[logo1, logo2, logo3, logo4, logo5].map((logo, idx) => (
                 <div key={`dup-${idx}`} className="flex items-center justify-center w-36 h-20 shrink-0 mix-blend-multiply opacity-90 hover:opacity-100 hover:scale-110 transition-all duration-300">
-                  <img src={logo} alt={`Client Brand Duplicate ${idx + 1}`} className="max-w-full max-h-full object-contain drop-shadow-sm" />
+                  <img src={logo} alt={`Client Brand Duplicate ${idx + 1}`} className="max-w-full max-h-full object-contain drop-shadow-sm" loading="lazy" decoding="async" />
                 </div>
               ))}
             </motion.div>
@@ -314,6 +327,8 @@ export const Home = () => {
             src="https://images.unsplash.com/photo-1565439390111-e6e73775f0f3?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80" 
             alt="Manufacturing Facility" 
             className="w-full h-full object-cover"
+            loading="lazy"
+            decoding="async"
           />
         </div>
         

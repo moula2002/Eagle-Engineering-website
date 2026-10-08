@@ -72,7 +72,7 @@ export const Footer = () => {
                 <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center shrink-0 group-hover:bg-[var(--brand-red)] transition-colors duration-300">
                   <MapPin className="w-4 h-4 text-[var(--brand-red)] group-hover:text-white" />
                 </div>
-                <span className="mt-1">EAGLE ENGINEERING<br />No.68/69, Shivoham, Rajatadri<br />Layout, 2nd Cross Kothnurdinne<br />Main Road, JP Nagar 8th Phase,<br />Bengaluru- 560078</span>
+                <span className="mt-1">EAGLE ENGINEERING<br />No. 22, First Floor, Kothnoor Dinne,<br />JP Nagar 8th Phase, Kalena Agrahara, Kothnur,<br />Bengaluru, Karnataka - 560076</span>
               </li>
               <li className="flex items-center space-x-3 text-sm text-gray-400 font-light group">
                 <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center shrink-0 group-hover:bg-[var(--brand-red)] transition-colors duration-300">

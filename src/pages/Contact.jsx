@@ -64,10 +64,9 @@ export const Contact = () => {
                   <h4 className="text-[16px] font-bold text-[#0b2545] mb-1">Address</h4>
                   <p className="text-[15px] text-gray-500 font-light leading-relaxed">
                     <strong>EAGLE ENGINEERING</strong><br />
-                    No.68/69, Shivoham, Rajatadri<br />
-                    Layout, 2nd Cross Kothnurdinne<br />
-                    Main Road, JP Nagar 8th Phase,<br />
-                    Bengaluru- 560078
+                    No. 22, First Floor, Kothnoor Dinne,<br />
+                    JP Nagar 8th Phase, Kalena Agrahara, Kothnur,<br />
+                    Bengaluru, Karnataka - 560076
                   </p>
                 </div>
               </div>

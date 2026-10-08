@@ -1,19 +1,66 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CheckCircle, ArrowLeft, ArrowRight } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import fastener1 from '../assets/fastener_1.png';
-import fastener2 from '../assets/fastener_2.png';
+import { getProducts, getProductById, getImageUrl } from '../api/api';
 
 export const ProductDetails = () => {
-  const images = [
-    fastener1,
-    fastener2,
-    fastener1,
-    fastener2,
-  ];
+  const { id } = useParams();
+  const [product, setProduct] = useState(null);
+  const [relatedProducts, setRelatedProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [mainImg, setMainImg] = useState('');
 
-  const [mainImg, setMainImg] = useState(images[0]);
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        // Fetch current product
+        const json = await getProductById(id);
+        if (json.success && json.data) {
+          setProduct(json.data);
+          setMainImg(getImageUrl(json.data.mainImage) || fastener1);
+        }
+
+        // Fetch related products
+        const allProductsJson = await getProducts();
+        if (allProductsJson.success && allProductsJson.data) {
+          const filtered = allProductsJson.data.filter(p => p._id !== id);
+          setRelatedProducts(filtered.slice(0, 4));
+        }
+      } catch (error) {
+        console.error('Failed to fetch data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (id) {
+      fetchData();
+    }
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="bg-white min-h-screen flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-gray-200 border-t-[var(--brand-red)] rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  if (!product) {
+    return (
+      <div className="bg-white min-h-screen flex items-center justify-center">
+        <h2 className="text-2xl font-bold text-[#0b2545]">Product Not Found</h2>
+      </div>
+    );
+  }
+
+  // Combine mainImage and gallery images
+  const galleryImages = [
+    getImageUrl(product.mainImage) || fastener1,
+    ...(product.gallery || []).map(img => getImageUrl(img))
+  ].filter(Boolean);
 
   return (
     <div className="bg-white min-h-screen">
@@ -48,19 +95,19 @@ export const ProductDetails = () => {
             className="w-full lg:w-1/2 flex flex-col-reverse md:flex-row gap-6"
           >
             <div className="flex flex-row md:flex-col gap-4 overflow-x-auto pb-2 md:pb-0 hide-scrollbar shrink-0">
-              {images.map((img, idx) => (
+              {galleryImages.map((img, idx) => (
                 <div 
                   key={idx} 
                   onClick={() => setMainImg(img)}
                   className={`w-24 h-24 shrink-0 border-2 rounded-xl cursor-pointer overflow-hidden p-2 transition-all duration-300 ${mainImg === img ? 'border-[var(--brand-red)] shadow-md scale-105' : 'border-gray-100 hover:border-gray-300 hover:shadow-sm'}`}
                 >
-                  <img src={img} alt={`Thumbnail ${idx}`} className="w-full h-full object-contain mix-blend-multiply opacity-90" />
+                  <img src={img} alt={`Thumbnail ${idx}`} className="w-full h-full object-contain" />
                 </div>
               ))}
             </div>
             <div className="flex-grow bg-white border border-gray-100 rounded-2xl p-4 md:p-10 flex items-center justify-center h-[300px] md:h-[450px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative group overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-tr from-gray-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-              <img src={mainImg} alt="Spur Gears" className="max-h-full object-contain mix-blend-multiply relative z-10 group-hover:scale-105 transition-transform duration-500" />
+              <img src={mainImg || fastener1} alt={product.name} className="max-h-full object-contain relative z-10 group-hover:scale-105 transition-transform duration-500" />
             </div>
           </motion.div>
 
@@ -71,43 +118,48 @@ export const ProductDetails = () => {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="w-full lg:w-1/2"
           >
-            <h1 className="text-4xl font-heading font-bold text-[#0b2545] mb-6 uppercase tracking-wide">Spur Gears</h1>
-            <p className="text-gray-500 text-base leading-relaxed mb-10 max-w-lg font-light">
-              High-precision spur gears manufactured with superior quality materials for reliable performance in industrial applications. Designed for durability and extreme environments.
+            <h1 className="text-4xl font-heading font-bold text-[#0b2545] mb-6 uppercase tracking-wide">{product.name}</h1>
+            <p className="text-gray-500 text-base leading-relaxed mb-10 max-w-lg font-light whitespace-pre-line">
+              {product.fullDescription || product.shortDescription || 'High-precision components manufactured with superior quality materials for reliable performance in industrial applications.'}
             </p>
 
-            <ul className="space-y-5 mb-12">
-              <li className="flex items-center text-[15px] font-bold text-[#0b2545] group">
-                <div className="bg-red-50 p-2 rounded-full mr-4 group-hover:scale-110 transition-transform">
-                  <CheckCircle className="w-5 h-5 text-[var(--brand-red)] shrink-0" />
-                </div>
-                High precision machining
-              </li>
-              <li className="flex items-center text-[15px] font-bold text-[#0b2545] group">
-                <div className="bg-red-50 p-2 rounded-full mr-4 group-hover:scale-110 transition-transform">
-                  <CheckCircle className="w-5 h-5 text-[var(--brand-red)] shrink-0" />
-                </div>
-                Durable and long-lasting
-              </li>
-              <li className="flex items-center text-[15px] font-bold text-[#0b2545] group">
-                <div className="bg-red-50 p-2 rounded-full mr-4 group-hover:scale-110 transition-transform">
-                  <CheckCircle className="w-5 h-5 text-[var(--brand-red)] shrink-0" />
-                </div>
-                Multiple sizes available
-              </li>
-              <li className="flex items-center text-[15px] font-bold text-[#0b2545] group">
-                <div className="bg-red-50 p-2 rounded-full mr-4 group-hover:scale-110 transition-transform">
-                  <CheckCircle className="w-5 h-5 text-[var(--brand-red)] shrink-0" />
-                </div>
-                Custom specifications
-              </li>
-              <li className="flex items-center text-[15px] font-bold text-[#0b2545] group">
-                <div className="bg-red-50 p-2 rounded-full mr-4 group-hover:scale-110 transition-transform">
-                  <CheckCircle className="w-5 h-5 text-[var(--brand-red)] shrink-0" />
-                </div>
-                Quality tested
-              </li>
-            </ul>
+            {product.specifications && Object.keys(product.specifications).filter(key => product.specifications[key]).length > 0 ? (
+              <ul className="space-y-5 mb-12">
+                {Object.keys(product.specifications).map((key, idx) => {
+                  const val = product.specifications[key];
+                  if (!val) return null;
+                  return (
+                    <li key={idx} className="flex items-center text-[15px] font-bold text-[#0b2545] group">
+                      <div className="bg-red-50 p-2 rounded-full mr-4 group-hover:scale-110 transition-transform">
+                        <CheckCircle className="w-5 h-5 text-[var(--brand-red)] shrink-0" />
+                      </div>
+                      <span className="capitalize">{key}:</span> <span className="ml-2 font-normal text-gray-500">{val}</span>
+                    </li>
+                  )
+                })}
+              </ul>
+            ) : (
+              <ul className="space-y-5 mb-12">
+                <li className="flex items-center text-[15px] font-bold text-[#0b2545] group">
+                  <div className="bg-red-50 p-2 rounded-full mr-4 group-hover:scale-110 transition-transform">
+                    <CheckCircle className="w-5 h-5 text-[var(--brand-red)] shrink-0" />
+                  </div>
+                  High precision machining
+                </li>
+                <li className="flex items-center text-[15px] font-bold text-[#0b2545] group">
+                  <div className="bg-red-50 p-2 rounded-full mr-4 group-hover:scale-110 transition-transform">
+                    <CheckCircle className="w-5 h-5 text-[var(--brand-red)] shrink-0" />
+                  </div>
+                  Durable and long-lasting
+                </li>
+                <li className="flex items-center text-[15px] font-bold text-[#0b2545] group">
+                  <div className="bg-red-50 p-2 rounded-full mr-4 group-hover:scale-110 transition-transform">
+                    <CheckCircle className="w-5 h-5 text-[var(--brand-red)] shrink-0" />
+                  </div>
+                  Multiple sizes available
+                </li>
+              </ul>
+            )}
 
             <div className="flex flex-col sm:flex-row flex-wrap gap-4">
               <Link 
@@ -142,21 +194,20 @@ export const ProductDetails = () => {
           </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-            {[
-              { name: 'Helical Gears', img: fastener2 },
-              { name: 'Bevel Gears', img: fastener1 },
-              { name: 'Shaft Components', img: fastener2 },
-              { name: 'Custom Flanges', img: fastener1 }
-            ].map((prod, idx) => (
-              <Link to="/product-details" key={idx} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden group hover:-translate-y-2 hover:shadow-lg transition-all duration-300 block">
-                <div className="h-48 w-full bg-gray-50/50 p-4 flex items-center justify-center relative overflow-hidden">
-                  <img src={prod.img} alt={prod.name} className="max-h-full object-contain mix-blend-multiply group-hover:scale-110 transition-transform duration-500" />
-                </div>
-                <div className="p-4 text-left border-t border-gray-50">
-                  <h4 className="font-bold text-[#0b2545] group-hover:text-[var(--brand-red)] transition-colors">{prod.name}</h4>
-                </div>
-              </Link>
-            ))}
+            {relatedProducts.length > 0 ? (
+              relatedProducts.map((prod) => (
+                <Link to={`/products/${prod._id}`} key={prod._id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden group hover:-translate-y-2 hover:shadow-lg transition-all duration-300 block">
+                  <div className="h-48 w-full bg-gray-50/50 p-4 flex items-center justify-center relative overflow-hidden">
+                    <img src={getImageUrl(prod.mainImage) || fastener1} alt={prod.name} className="max-h-full object-contain group-hover:scale-110 transition-transform duration-500" />
+                  </div>
+                  <div className="p-4 text-left border-t border-gray-50">
+                    <h4 className="font-bold text-[#0b2545] group-hover:text-[var(--brand-red)] transition-colors">{prod.name}</h4>
+                  </div>
+                </Link>
+              ))
+            ) : (
+              <p className="text-gray-500 col-span-full">No related products found.</p>
+            )}
           </div>
         </div>
       </div>
