@@ -3,7 +3,7 @@ import { X, Send, Paperclip, CheckCircle } from 'lucide-react';
 
 
 
-export const ProposalModal: = ({ isOpen, onClose }) => {
+export const ProposalModal = ({ isOpen, onClose }) => {
   const [submitted, setSubmitted] = useState(false);
 
   if (!isOpen) return null;
