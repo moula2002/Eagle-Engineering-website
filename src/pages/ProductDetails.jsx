@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { CheckCircle, ArrowLeft, ArrowRight } from 'lucide-react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import fastener1 from '../assets/fastener_1.png';
 import { getProducts, getProductById, getImageUrl } from '../api/api';
 
 export const ProductDetails = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const fromHome = location.state?.fromHome || false;
   const [product, setProduct] = useState(null);
   const [relatedProducts, setRelatedProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -80,10 +83,19 @@ export const ProductDetails = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <Link to="/products" className="inline-flex items-center text-sm font-bold text-gray-500 hover:text-[#0b2545] transition-colors mb-8">
+        <button 
+          onClick={() => {
+            if (fromHome) {
+              navigate('/');
+            } else {
+              navigate('/products');
+            }
+          }}
+          className="inline-flex items-center text-sm font-bold text-gray-500 hover:text-[#0b2545] transition-colors mb-8 bg-transparent border-none cursor-pointer p-0"
+        >
           <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Products
-        </Link>
+          {fromHome ? 'Back to Home' : 'Back to Products'}
+        </button>
 
         <div className="flex flex-col lg:flex-row gap-16">
           
@@ -118,7 +130,50 @@ export const ProductDetails = () => {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="w-full lg:w-1/2"
           >
-            <h1 className="text-4xl font-heading font-bold text-[#0b2545] mb-6 uppercase tracking-wide">{product.name}</h1>
+            {/* Badges */}
+            {(product.isNewProduct || product.isFeatured) && (
+              <div className="flex flex-wrap gap-2 mb-4">
+                {product.isNewProduct && (
+                  <span className="px-3 py-1 bg-green-100 text-green-700 text-[10px] font-bold rounded-full uppercase tracking-wider border border-green-200">New Product</span>
+                )}
+                {product.isFeatured && (
+                  <span className="px-3 py-1 bg-amber-100 text-amber-700 text-[10px] font-bold rounded-full uppercase tracking-wider border border-amber-200">Featured</span>
+                )}
+              </div>
+            )}
+
+            <h1 className="text-4xl font-heading font-bold text-[#0b2545] mb-4 uppercase tracking-wide">{product.name}</h1>
+            
+            {/* Brand, Category, SKU */}
+            {(product.brand || product.sku || product.category || product.subCategory) && (
+              <div className="flex flex-wrap items-center gap-4 mb-6 text-sm">
+                {product.brand && (
+                  <div className="flex items-center text-gray-500">
+                    <span className="font-bold text-[#0b2545] uppercase tracking-wider text-xs mr-2">Brand:</span> 
+                    <span className="bg-gray-100 px-2 py-1 rounded-md text-gray-700">{product.brand}</span>
+                  </div>
+                )}
+                {product.category?.name && (
+                  <div className="flex items-center text-gray-500">
+                    <span className="font-bold text-[#0b2545] uppercase tracking-wider text-xs mr-2">Category:</span> 
+                    <span className="bg-gray-100 px-2 py-1 rounded-md text-gray-700">{product.category.name}</span>
+                  </div>
+                )}
+                {product.subCategory?.name && (
+                  <div className="flex items-center text-gray-500">
+                    <span className="font-bold text-[#0b2545] uppercase tracking-wider text-xs mr-2">Sub-Category:</span> 
+                    <span className="bg-gray-100 px-2 py-1 rounded-md text-gray-700">{product.subCategory.name}</span>
+                  </div>
+                )}
+                {product.sku && (
+                  <div className="flex items-center text-gray-500">
+                    <span className="font-bold text-[#0b2545] uppercase tracking-wider text-xs mr-2">SKU:</span> 
+                    <span className="bg-gray-100 px-2 py-1 rounded-md text-gray-700 font-mono">{product.sku}</span>
+                  </div>
+                )}
+              </div>
+            )}
+
             <p className="text-gray-500 text-base leading-relaxed mb-10 max-w-lg font-light whitespace-pre-line">
               {product.fullDescription || product.shortDescription || 'High-precision components manufactured with superior quality materials for reliable performance in industrial applications.'}
             </p>

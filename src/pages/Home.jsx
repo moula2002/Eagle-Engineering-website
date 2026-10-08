@@ -16,6 +16,13 @@ import { getProducts, getImageUrl } from '../api/api';
 export const Home = () => {
   const [productsList, setProductsList] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [skipAnimation, setSkipAnimation] = useState(false);
+
+  useEffect(() => {
+    if (sessionStorage.getItem('homeScrollTarget')) {
+      setSkipAnimation(true);
+    }
+  }, []);
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -32,6 +39,21 @@ export const Home = () => {
     };
     fetchProducts();
   }, []);
+
+  useEffect(() => {
+    if (!loading && productsList.length > 0) {
+      const scrollTarget = sessionStorage.getItem('homeScrollTarget');
+      if (scrollTarget) {
+        setTimeout(() => {
+          const el = document.getElementById(scrollTarget);
+          if (el) {
+            el.scrollIntoView({ behavior: 'auto', block: 'center' });
+            sessionStorage.removeItem('homeScrollTarget');
+          }
+        }, 300);
+      }
+    }
+  }, [loading, productsList]);
 
   const staggerContainer = {
     hidden: { opacity: 0 },
@@ -242,37 +264,50 @@ export const Home = () => {
           
           <motion.div 
             variants={staggerContainer}
-            initial="hidden"
+            initial={skipAnimation ? "visible" : "hidden"}
             whileInView="visible"
-            viewport={{ once: true, margin: "-100px" }}
+            viewport={{ once: true, amount: 0.1 }}
             className="flex flex-wrap justify-center gap-x-8 gap-y-12"
           >
             {loading ? (
               <div className="w-full py-10 flex justify-center">
                 <div className="w-8 h-8 border-4 border-gray-200 border-t-[var(--brand-red)] rounded-full animate-spin"></div>
               </div>
+            ) : productsList.length === 0 ? (
+              <div className="w-full py-20 text-center text-gray-500 font-medium">
+                No products available at the moment.
+              </div>
             ) : productsList.slice(0, 5).map((p, idx) => (
-              <motion.div 
-                key={idx} 
-                variants={itemVariant} 
-                className="flex flex-col items-center group w-44 md:w-48 cursor-pointer"
-                animate={{ y: [0, -8, 0] }}
-                transition={{ 
-                  duration: 4, 
-                  repeat: Infinity, 
-                  ease: "easeInOut",
-                  delay: idx * 0.2 // Stagger the floating effect
-                }}
-              >
-                <Link to={`/products/${p._id}`} className="relative w-40 h-40 md:w-44 md:h-44 flex items-center justify-center hover:-translate-y-2 transition-transform duration-300">
-                  <svg className="absolute inset-0 w-full h-full text-[var(--brand-red)] drop-shadow-sm" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M100 5C125 5 135 15 155 25C175 35 195 55 195 100C195 145 175 165 155 175C135 185 125 195 100 195C75 195 65 185 45 175C25 165 5 145 5 100C5 55 25 35 45 25C65 15 75 5 100 5Z" stroke="currentColor" strokeWidth="4" fill="white" />
-                  </svg>
-                  <img src={getImageUrl(p.mainImage) || fastener1} alt={p.name} className="w-24 h-24 md:w-28 md:h-28 object-contain relative z-10 mix-blend-multiply group-hover:scale-110 transition-transform duration-300" loading="lazy" decoding="async" />
-                </Link>
-                <Link to={`/products/${p._id}`}>
-                  <h3 className="text-center font-bold text-[#0b2545] mt-4 text-sm md:text-[15px] px-2 group-hover:text-[var(--brand-red)] transition-colors">{p.name}</h3>
-                </Link>
+              <motion.div key={idx} variants={itemVariant} id={`product-${p._id}`}>
+                <motion.div 
+                  className="flex flex-col items-center group w-44 md:w-48 cursor-pointer"
+                  animate={{ y: [0, -8, 0] }}
+                  transition={{ 
+                    duration: 4, 
+                    repeat: Infinity, 
+                    ease: "easeInOut",
+                    delay: idx * 0.2 // Stagger the floating effect
+                  }}
+                >
+                  <Link 
+                    to={`/products/${p._id}`} 
+                    state={{ fromHome: true }}
+                    onClick={() => sessionStorage.setItem('homeScrollTarget', `product-${p._id}`)}
+                    className="relative w-40 h-40 md:w-44 md:h-44 flex items-center justify-center hover:-translate-y-2 transition-transform duration-300"
+                  >
+                    <svg className="absolute inset-0 w-full h-full text-[var(--brand-red)] drop-shadow-sm" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M100 5C125 5 135 15 155 25C175 35 195 55 195 100C195 145 175 165 155 175C135 185 125 195 100 195C75 195 65 185 45 175C25 165 5 145 5 100C5 55 25 35 45 25C65 15 75 5 100 5Z" stroke="currentColor" strokeWidth="4" fill="white" />
+                    </svg>
+                    <img src={getImageUrl(p.mainImage) || fastener1} alt={p.name} className="w-24 h-24 md:w-28 md:h-28 object-contain relative z-10 mix-blend-multiply group-hover:scale-110 transition-transform duration-300" loading="lazy" decoding="async" />
+                  </Link>
+                  <Link 
+                    to={`/products/${p._id}`}
+                    state={{ fromHome: true }}
+                    onClick={() => sessionStorage.setItem('homeScrollTarget', `product-${p._id}`)}
+                  >
+                    <h3 className="text-center font-bold text-[#0b2545] mt-4 text-sm md:text-[15px] px-2 group-hover:text-[var(--brand-red)] transition-colors">{p.name}</h3>
+                  </Link>
+                </motion.div>
               </motion.div>
             ))}
           </motion.div>
