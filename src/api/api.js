@@ -38,6 +38,16 @@ export const getCategories = async () => {
   }
 };
 
+export const getSubCategories = async () => {
+  try {
+    const response = await fetch(`${API_URL}/subcategories`);
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching subcategories:', error);
+    throw error;
+  }
+};
+
 export const createInquiry = async (inquiryData) => {
   try {
     const response = await fetch(`${API_URL}/inquiries`, {

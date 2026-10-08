@@ -1,28 +1,39 @@
 import React, { useState, useEffect } from 'react';
 import { Search } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import fastener1 from '../assets/fastener_1.png';
-import { getProducts, getCategories, getImageUrl } from '../api/api';
+import { getProducts, getCategories, getSubCategories, getImageUrl } from '../api/api';
 
 export const Products = () => {
   const [productsList, setProductsList] = useState([]);
   const [categoriesList, setCategoriesList] = useState([]);
+  const [subCategoriesList, setSubCategoriesList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('All Products');
+  const location = useLocation();
+  const [selectedCategory, setSelectedCategory] = useState(location.state?.selectedCategory || 'All Products');
+  const [selectedSubCategory, setSelectedSubCategory] = useState('All');
   
+  useEffect(() => {
+    if (location.state?.selectedCategory) {
+      setSelectedCategory(location.state.selectedCategory);
+      setSelectedSubCategory('All');
+    }
+  }, [location.state]);
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [productsJson, categoriesJson] = await Promise.all([
+        const [productsJson, categoriesJson, subCategoriesJson] = await Promise.all([
           getProducts(),
-          getCategories()
+          getCategories(),
+          getSubCategories()
         ]);
         
         if (productsJson.success) setProductsList(productsJson.data);
         if (categoriesJson.success) setCategoriesList(categoriesJson.data);
+        if (subCategoriesJson.success) setSubCategoriesList(subCategoriesJson.data);
       } catch (error) {
         console.error('Failed to fetch data:', error);
       } finally {
@@ -33,12 +44,18 @@ export const Products = () => {
   }, []);
 
   const allCategoryNames = ['All Products', ...categoriesList.map(c => c.name)];
+  
+  const currentSubCategories = selectedCategory === 'All Products' 
+    ? [] 
+    : subCategoriesList.filter(sc => sc.category && sc.category.name === selectedCategory);
 
-  // Filter products based on search query and selected category
+  // Filter products based on search query, category, and subcategory
   const filteredProducts = productsList.filter(p => {
     const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = selectedCategory === 'All Products' || (p.category && p.category.name === selectedCategory);
-    return matchesSearch && matchesCategory;
+    const matchesSubCategory = selectedSubCategory === 'All' || (p.subCategory && p.subCategory.name === selectedSubCategory);
+    
+    return matchesSearch && matchesCategory && matchesSubCategory;
   });
 
   return (
@@ -95,7 +112,10 @@ export const Products = () => {
                 {allCategoryNames.map((cat, idx) => (
                   <button 
                     key={idx}
-                    onClick={() => setSelectedCategory(cat)}
+                    onClick={() => {
+                      setSelectedCategory(cat);
+                      setSelectedSubCategory('All');
+                    }}
                     className={`text-left px-6 py-4 text-[15px] font-bold border-b border-gray-50 last:border-b-0 transition-all ${
                       selectedCategory === cat 
                         ? 'bg-[var(--brand-red)] text-white' 
@@ -109,7 +129,37 @@ export const Products = () => {
             </motion.div>
 
             {/* Main Content */}
-            <div className="w-full md:w-3/4">
+            <div className="w-full md:w-3/4 flex flex-col">
+              
+              {/* Subcategories Filter Chips */}
+              {currentSubCategories.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-8">
+                  <button
+                    onClick={() => setSelectedSubCategory('All')}
+                    className={`px-5 py-2 rounded-full text-sm font-bold transition-all ${
+                      selectedSubCategory === 'All'
+                        ? 'bg-[#0b2545] text-white shadow-md'
+                        : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
+                    }`}
+                  >
+                    All {selectedCategory}
+                  </button>
+                  {currentSubCategories.map((sub, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setSelectedSubCategory(sub.name)}
+                      className={`px-5 py-2 rounded-full text-sm font-bold transition-all ${
+                        selectedSubCategory === sub.name
+                          ? 'bg-[#0b2545] text-white shadow-md'
+                          : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
+                      }`}
+                    >
+                      {sub.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+
               <motion.div 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}

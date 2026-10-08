@@ -3,12 +3,27 @@ import { Link, useLocation } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
 import logoNew from '../assets/logo_new.png';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getCategories } from '../api/api';
 
 export const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [categories, setCategories] = useState([]);
+  const [showDropdown, setShowDropdown] = useState(false);
   const location = useLocation();
   const activePath = location.pathname;
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const json = await getCategories();
+        if (json.success) setCategories(json.data);
+      } catch (error) {
+        console.error('Failed to fetch categories:', error);
+      }
+    };
+    fetchCategories();
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -60,24 +75,63 @@ export const Navbar = () => {
             <div className="hidden md:flex items-center space-x-1">
               {navLinks.map((link) => {
                 const isActive = activePath === link.path;
+                const isProducts = link.path === '/products';
+                
                 return (
-                  <Link
+                  <div 
                     key={link.path}
-                    to={link.path}
-                    className={`relative px-5 py-2 rounded-full text-sm font-semibold transition-all duration-300 ${
-                      isActive 
-                        ? 'text-[#0b2545] bg-gray-100/80' 
-                        : 'text-gray-600 hover:text-[#0b2545] hover:bg-gray-50'
-                    }`}
+                    className="relative"
+                    onMouseEnter={() => isProducts && setShowDropdown(true)}
+                    onMouseLeave={() => isProducts && setShowDropdown(false)}
                   >
-                    {link.label}
-                    {isActive && (
-                      <motion.div 
-                        layoutId="nav-indicator"
-                        className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-[var(--brand-red)]"
-                      />
+                    <Link
+                      to={link.path}
+                      className={`relative px-5 py-2 rounded-full text-sm font-semibold transition-all duration-300 inline-block ${
+                        isActive || (isProducts && showDropdown)
+                          ? 'text-[#0b2545] bg-gray-100/80' 
+                          : 'text-gray-600 hover:text-[#0b2545] hover:bg-gray-50'
+                      }`}
+                    >
+                      {link.label}
+                      {isActive && (
+                        <motion.div 
+                          layoutId="nav-indicator"
+                          className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-[var(--brand-red)]"
+                        />
+                      )}
+                    </Link>
+
+                    {/* Dropdown for Products */}
+                    {isProducts && (
+                      <AnimatePresence>
+                        {showDropdown && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 10 }}
+                            transition={{ duration: 0.2 }}
+                            className="absolute top-full left-1/2 -translate-x-1/2 pt-4 w-56"
+                          >
+                            <div className="bg-white rounded-2xl shadow-[0_10px_40px_rgb(0,0,0,0.1)] border border-gray-100 overflow-hidden p-2 flex flex-col relative before:content-[''] before:absolute before:-top-2 before:left-1/2 before:-translate-x-1/2 before:border-8 before:border-transparent before:border-b-white">
+                              {categories.length > 0 ? categories.map((cat, idx) => (
+                                <Link
+                                  key={idx}
+                                  to="/products"
+                                  state={{ selectedCategory: cat.name }}
+                                  onClick={() => setShowDropdown(false)}
+                                  className="px-4 py-2.5 text-sm font-medium text-gray-600 hover:text-[var(--brand-red)] hover:bg-gray-50 rounded-xl transition-colors block text-left"
+                                >
+                                  {cat.name}
+                                </Link>
+                              )) : (
+                                <div className="px-4 py-3 text-sm text-gray-400 italic text-center">No categories</div>
+                              )}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     )}
-                  </Link>
+                  </div>
                 );
               })}
             </div>
