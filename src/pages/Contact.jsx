@@ -11,7 +11,8 @@ export const Contact = () => {
     email: '',
     phone: '',
     subject: location.state?.productName ? `Quote Request: ${location.state.productName}` : '',
-    message: ''
+    message: '',
+    productImage: location.state?.productImage || ''
   });
   const [status, setStatus] = useState({ loading: false, success: false, error: null });
 
@@ -160,7 +161,12 @@ export const Contact = () => {
                   className="w-full px-5 py-4 bg-gray-50/50 border border-gray-100 rounded-xl focus:outline-none focus:border-[var(--brand-blue)] focus:bg-white transition-all text-[15px]"
                 />
               </div>
-              <div>
+              <div className="relative flex items-center">
+                {formData.productImage && (
+                  <div className="absolute left-3 w-10 h-10 bg-white rounded-lg p-1 border border-gray-100 flex items-center justify-center pointer-events-none">
+                    <img src={formData.productImage} alt="Product" className="max-w-full max-h-full object-contain" />
+                  </div>
+                )}
                 <input 
                   type="text" 
                   name="subject"
@@ -168,7 +174,7 @@ export const Contact = () => {
                   onChange={handleChange}
                   required
                   placeholder="Subject" 
-                  className="w-full px-5 py-4 bg-gray-50/50 border border-gray-100 rounded-xl focus:outline-none focus:border-[var(--brand-blue)] focus:bg-white transition-all text-[15px]"
+                  className={`w-full ${formData.productImage ? 'pl-16' : 'px-5'} py-4 pr-5 bg-gray-50/50 border border-gray-100 rounded-xl focus:outline-none focus:border-[var(--brand-blue)] focus:bg-white transition-all text-[15px]`}
                 />
               </div>
               <div>
