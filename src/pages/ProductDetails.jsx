@@ -164,6 +164,7 @@ export const ProductDetails = () => {
             <div className="flex flex-col sm:flex-row flex-wrap gap-4">
               <Link 
                 to="/contact"
+                state={{ productName: product.name }}
                 className="inline-flex justify-center items-center px-8 py-3.5 bg-[var(--brand-red)] text-white text-sm font-bold rounded-xl hover:bg-red-700 transition-all uppercase tracking-wider w-full sm:w-auto shadow-[0_4px_14px_0_rgba(230,32,32,0.39)] hover:shadow-[0_6px_20px_rgba(230,32,32,0.23)] hover:-translate-y-0.5"
               >
                 Request Quote

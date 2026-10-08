@@ -27,3 +27,29 @@ export const getProductById = async (id) => {
     throw error;
   }
 };
+
+export const getCategories = async () => {
+  try {
+    const response = await fetch(`${API_URL}/categories`);
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching categories:', error);
+    throw error;
+  }
+};
+
+export const createInquiry = async (inquiryData) => {
+  try {
+    const response = await fetch(`${API_URL}/inquiries`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(inquiryData)
+    });
+    return await response.json();
+  } catch (error) {
+    console.error('Error submitting inquiry:', error);
+    throw error;
+  }
+};

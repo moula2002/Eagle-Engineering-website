@@ -3,41 +3,43 @@ import { Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import fastener1 from '../assets/fastener_1.png';
-import { getProducts, getImageUrl } from '../api/api';
+import { getProducts, getCategories, getImageUrl } from '../api/api';
 
 export const Products = () => {
   const [productsList, setProductsList] = useState([]);
+  const [categoriesList, setCategoriesList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('All Products');
   
   useEffect(() => {
-    const fetchProducts = async () => {
+    const fetchData = async () => {
       try {
-        const json = await getProducts();
-        if (json.success) {
-          setProductsList(json.data);
-        }
+        setLoading(true);
+        const [productsJson, categoriesJson] = await Promise.all([
+          getProducts(),
+          getCategories()
+        ]);
+        
+        if (productsJson.success) setProductsList(productsJson.data);
+        if (categoriesJson.success) setCategoriesList(categoriesJson.data);
       } catch (error) {
-        console.error('Failed to fetch products:', error);
+        console.error('Failed to fetch data:', error);
       } finally {
         setLoading(false);
       }
     };
-    fetchProducts();
+    fetchData();
   }, []);
-  const categories = [
-    'All Products',
-    'Industrial Gears',
-    'Shaft Components',
-    'Machined Parts',
-    'Fasteners',
-    'Custom Solutions'
-  ];
 
-  // Filter products based on search query
-  const filteredProducts = productsList.filter(p => 
-    p.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const allCategoryNames = ['All Products', ...categoriesList.map(c => c.name)];
+
+  // Filter products based on search query and selected category
+  const filteredProducts = productsList.filter(p => {
+    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = selectedCategory === 'All Products' || (p.category && p.category.name === selectedCategory);
+    return matchesSearch && matchesCategory;
+  });
 
   return (
     <div className="bg-white min-h-screen">
@@ -90,11 +92,12 @@ export const Products = () => {
               className="w-full md:w-1/4 shrink-0"
             >
               <div className="flex flex-col bg-white rounded-2xl overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
-                {categories.map((cat, idx) => (
+                {allCategoryNames.map((cat, idx) => (
                   <button 
                     key={idx}
+                    onClick={() => setSelectedCategory(cat)}
                     className={`text-left px-6 py-4 text-[15px] font-bold border-b border-gray-50 last:border-b-0 transition-all ${
-                      idx === 0 
+                      selectedCategory === cat 
                         ? 'bg-[var(--brand-red)] text-white' 
                         : 'bg-white text-gray-600 hover:bg-gray-50 hover:text-[#0b2545] hover:pl-8'
                     }`}

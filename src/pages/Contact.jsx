@@ -1,8 +1,39 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Phone, Mail, MapPin } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useLocation } from 'react-router-dom';
+import { createInquiry } from '../api/api';
 
 export const Contact = () => {
+  const location = useLocation();
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    subject: location.state?.productName ? `Quote Request: ${location.state.productName}` : '',
+    message: ''
+  });
+  const [status, setStatus] = useState({ loading: false, success: false, error: null });
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setStatus({ loading: true, success: false, error: null });
+    try {
+      const result = await createInquiry(formData);
+      if (result.success) {
+        setStatus({ loading: false, success: true, error: null });
+        setFormData({ name: '', email: '', phone: '', subject: '', message: '' });
+      } else {
+        setStatus({ loading: false, success: false, error: result.message || 'Failed to submit.' });
+      }
+    } catch (error) {
+      setStatus({ loading: false, success: false, error: 'An error occurred while submitting.' });
+    }
+  };
   return (
     <section id="contact" className="py-0 bg-gray-50 min-h-screen bg-industrial-pattern">
       {/* Header Banner */}
@@ -82,10 +113,27 @@ export const Contact = () => {
             className="bg-white p-8 md:p-10 rounded-2xl shadow-[0_20px_40px_rgb(0,0,0,0.06)] border border-gray-100"
           >
             <h3 className="text-xl font-bold text-[#0b2545] mb-8 font-heading uppercase tracking-wide">SEND US A MESSAGE</h3>
-            <form className="space-y-6">
+            
+            {status.success && (
+              <div className="mb-6 p-4 bg-green-50 border border-green-200 text-green-700 rounded-xl font-medium">
+                Thank you! Your message has been sent successfully. We will get back to you soon.
+              </div>
+            )}
+            
+            {status.error && (
+              <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl font-medium">
+                {status.error}
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-6">
               <div>
                 <input 
                   type="text" 
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  required
                   placeholder="Your Name" 
                   className="w-full px-5 py-4 bg-gray-50/50 border border-gray-100 rounded-xl focus:outline-none focus:border-[var(--brand-blue)] focus:bg-white transition-all text-[15px]"
                 />
@@ -93,13 +141,32 @@ export const Contact = () => {
               <div>
                 <input 
                   type="email" 
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  required
                   placeholder="Your Email" 
                   className="w-full px-5 py-4 bg-gray-50/50 border border-gray-100 rounded-xl focus:outline-none focus:border-[var(--brand-blue)] focus:bg-white transition-all text-[15px]"
                 />
               </div>
               <div>
                 <input 
+                  type="tel" 
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  required
+                  placeholder="Your Phone Number" 
+                  className="w-full px-5 py-4 bg-gray-50/50 border border-gray-100 rounded-xl focus:outline-none focus:border-[var(--brand-blue)] focus:bg-white transition-all text-[15px]"
+                />
+              </div>
+              <div>
+                <input 
                   type="text" 
+                  name="subject"
+                  value={formData.subject}
+                  onChange={handleChange}
+                  required
                   placeholder="Subject" 
                   className="w-full px-5 py-4 bg-gray-50/50 border border-gray-100 rounded-xl focus:outline-none focus:border-[var(--brand-blue)] focus:bg-white transition-all text-[15px]"
                 />
@@ -107,16 +174,23 @@ export const Contact = () => {
               <div>
                 <textarea 
                   rows={5} 
+                  name="message"
+                  value={formData.message}
+                  onChange={handleChange}
+                  required
                   placeholder="Message" 
                   className="w-full px-5 py-4 bg-gray-50/50 border border-gray-100 rounded-xl focus:outline-none focus:border-[var(--brand-blue)] focus:bg-white transition-all text-[15px] resize-none"
                 ></textarea>
               </div>
               <div className="flex justify-start">
                 <button 
-                  type="button"
-                  className="px-8 py-4 bg-[var(--brand-red)] text-white font-bold text-sm uppercase tracking-wider hover:bg-red-700 transition-all rounded-xl w-full shadow-[0_4px_14px_0_rgba(230,32,32,0.39)] hover:shadow-[0_6px_20px_rgba(230,32,32,0.23)] hover:-translate-y-0.5"
+                  type="submit"
+                  disabled={status.loading}
+                  className="px-8 py-4 bg-[var(--brand-red)] text-white font-bold text-sm uppercase tracking-wider hover:bg-red-700 transition-all rounded-xl w-full shadow-[0_4px_14px_0_rgba(230,32,32,0.39)] hover:shadow-[0_6px_20px_rgba(230,32,32,0.23)] hover:-translate-y-0.5 disabled:opacity-70 flex justify-center items-center"
                 >
-                  SEND MESSAGE →
+                  {status.loading ? (
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  ) : 'SEND MESSAGE →'}
                 </button>
               </div>
             </form>
