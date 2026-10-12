@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { CheckCircle, ArrowLeft, ArrowRight } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CheckCircle, Download, Send } from 'lucide-react';
 import { Link, useParams, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import fastener1 from '../assets/fastener_1.png';
 import { getProducts, getProductById, getImageUrl } from '../api/api';
+import { resolveProductImage, parseProductContent, getFallbackProduct } from '../data/productDataHelper';
 
 export const ProductDetails = () => {
   const { id } = useParams();
@@ -23,7 +23,14 @@ export const ProductDetails = () => {
         const json = await getProductById(id);
         if (json.success && json.data) {
           setProduct(json.data);
-          setMainImg(getImageUrl(json.data.mainImage) || fastener1);
+          const resolvedImg = resolveProductImage(json.data);
+          setMainImg(resolvedImg);
+        } else {
+          const fallback = getFallbackProduct(id);
+          if (fallback) {
+            setProduct(fallback);
+            setMainImg(fallback.mainImage);
+          }
         }
 
         // Fetch related products
@@ -33,7 +40,12 @@ export const ProductDetails = () => {
           setRelatedProducts(filtered.slice(0, 4));
         }
       } catch (error) {
-        console.error('Failed to fetch data:', error);
+        console.error('Failed to fetch product data:', error);
+        const fallback = getFallbackProduct(id);
+        if (fallback) {
+          setProduct(fallback);
+          setMainImg(fallback.mainImage);
+        }
       } finally {
         setLoading(false);
       }
@@ -45,182 +57,162 @@ export const ProductDetails = () => {
 
   if (loading) {
     return (
-      <div className="bg-white min-h-screen flex items-center justify-center">
-        <div className="w-12 h-12 border-4 border-gray-200 border-t-[var(--brand-red)] rounded-full animate-spin"></div>
+      <div className="bg-white min-h-screen flex items-center justify-center pt-24">
+        <div className="flex flex-col items-center">
+          <div className="w-12 h-12 border-4 border-gray-200 border-t-[#e53524] rounded-full animate-spin mb-4"></div>
+          <p className="text-gray-500 font-medium text-sm">Loading product details...</p>
+        </div>
       </div>
     );
   }
 
   if (!product) {
     return (
-      <div className="bg-white min-h-screen flex items-center justify-center">
-        <h2 className="text-2xl font-bold text-[#0b2545]">Product Not Found</h2>
+      <div className="bg-white min-h-screen flex flex-col items-center justify-center pt-24 px-4 text-center">
+        <h2 className="text-3xl font-heading font-bold text-[#0b2545] mb-4">Product Not Found</h2>
+        <p className="text-gray-500 mb-8 max-w-md">The product you are looking for does not exist or may have been removed.</p>
+        <Link 
+          to="/products"
+          className="px-6 py-3 bg-[#e53524] text-white font-bold rounded-xl text-sm uppercase tracking-wider hover:bg-red-700 transition-colors shadow-md"
+        >
+          Back to Products
+        </Link>
       </div>
     );
   }
 
-  // Combine mainImage and gallery images
+  // Parse structured description, features, applications matching the reference image layout
+  const { description, features, applications } = parseProductContent(product);
+
+  // Gallery images including mainImage
+  const primaryResolved = resolveProductImage(product);
   const galleryImages = [
-    getImageUrl(product.mainImage) || fastener1,
+    primaryResolved,
     ...(product.gallery || []).map(img => getImageUrl(img))
   ].filter(Boolean);
 
+  // Valid specifications
+  const specs = product.specifications || {};
+  const validSpecs = Object.entries(specs).filter(([_, val]) => Boolean(val && String(val).trim()));
+
   return (
-    <div className="bg-white min-h-screen">
-      {/* Header Banner */}
-      <div className="relative bg-[#0b2545] pt-36 pb-20 overflow-hidden">
-        <div className="absolute inset-0 opacity-20 bg-cover bg-center mix-blend-overlay" style={{ backgroundImage: 'url(https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80)' }}></div>
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0b2545]/80 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0b2545]/60 to-transparent h-32" />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-white flex flex-wrap gap-2 md:gap-4 text-xs md:text-sm font-bold tracking-wider uppercase">
-          <Link to="/" className="text-gray-400 hover:text-white transition-colors">HOME</Link>
-          <span className="text-gray-500 hidden sm:inline">ABOUT US</span>
-          <Link to="/products" className="text-[var(--brand-red)] bg-white/10 px-3 py-1 rounded-full border border-white/20">PRODUCTS</Link>
-          <span className="text-gray-500">DOWNLOAD</span>
-          <span className="text-gray-500 hidden sm:inline">QUALITY</span>
-          <span className="text-gray-500 hidden sm:inline">CONTACT</span>
+    <div className="bg-white min-h-screen pt-28 md:pt-32 pb-20">
+      
+      {/* Top Breadcrumb & Back bar */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-6">
+        <div className="flex flex-wrap items-center justify-between gap-4 py-2 border-b border-gray-100">
+          <button 
+            onClick={() => {
+              if (fromHome) {
+                navigate('/');
+              } else {
+                navigate('/products');
+              }
+            }}
+            className="inline-flex items-center text-sm font-bold text-gray-500 hover:text-[#e53524] transition-colors bg-transparent border-none cursor-pointer p-0"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            {fromHome ? 'Back to Home' : 'Back to Products'}
+          </button>
+
+          <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+            <Link to="/" className="hover:text-gray-600 transition-colors">Home</Link>
+            <span>/</span>
+            <Link to="/products" className="hover:text-gray-600 transition-colors">Products</Link>
+            <span>/</span>
+            <span className="text-[#e53524] truncate max-w-[200px] sm:max-w-xs">{product.name}</span>
+          </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <button 
-          onClick={() => {
-            if (fromHome) {
-              navigate('/');
-            } else {
-              navigate('/products');
-            }
-          }}
-          className="inline-flex items-center text-sm font-bold text-gray-500 hover:text-[#0b2545] transition-colors mb-8 bg-transparent border-none cursor-pointer p-0"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          {fromHome ? 'Back to Home' : 'Back to Products'}
-        </button>
-
-        <div className="flex flex-col lg:flex-row gap-16">
+      {/* Main Product Showcase Section (Matches Reference Image) */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8">
+        <div className="flex flex-col lg:flex-row items-center lg:items-start justify-between gap-12 lg:gap-16">
           
-          {/* Gallery */}
+          {/* Left Column: Product Info (Title, Description, Features, Applications) */}
           <motion.div 
             initial={{ opacity: 0, x: -30 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6 }}
-            className="w-full lg:w-1/2 flex flex-col-reverse md:flex-row gap-6"
+            className="w-full lg:w-7/12 flex flex-col text-left"
           >
-            <div className="flex flex-row md:flex-col gap-4 overflow-x-auto pb-2 md:pb-0 hide-scrollbar shrink-0">
-              {galleryImages.map((img, idx) => (
-                <div 
-                  key={idx} 
-                  onClick={() => setMainImg(img)}
-                  className={`w-24 h-24 shrink-0 border-2 rounded-xl cursor-pointer overflow-hidden p-2 transition-all duration-300 ${mainImg === img ? 'border-[var(--brand-red)] shadow-md scale-105' : 'border-gray-100 hover:border-gray-300 hover:shadow-sm'}`}
-                >
-                  <img src={img} alt={`Thumbnail ${idx}`} className="w-full h-full object-contain" />
-                </div>
-              ))}
-            </div>
-            <div className="flex-grow bg-white border border-gray-100 rounded-2xl p-4 md:p-10 flex items-center justify-center h-[300px] md:h-[450px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative group overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-tr from-gray-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-              <img src={mainImg || fastener1} alt={product.name} className="max-h-full object-contain relative z-10 group-hover:scale-105 transition-transform duration-500" />
-            </div>
-          </motion.div>
-
-          {/* Details */}
-          <motion.div 
-            initial={{ opacity: 0, x: 30 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="w-full lg:w-1/2"
-          >
-            {/* Badges */}
-            {(product.isNewProduct || product.isFeatured) && (
-              <div className="flex flex-wrap gap-2 mb-4">
-                {product.isNewProduct && (
-                  <span className="px-3 py-1 bg-green-100 text-green-700 text-[10px] font-bold rounded-full uppercase tracking-wider border border-green-200">New Product</span>
-                )}
-                {product.isFeatured && (
-                  <span className="px-3 py-1 bg-amber-100 text-amber-700 text-[10px] font-bold rounded-full uppercase tracking-wider border border-amber-200">Featured</span>
-                )}
+            {/* Category badge if available */}
+            {product.category?.name && (
+              <div className="mb-3">
+                <span className="text-xs font-bold uppercase tracking-wider text-[#09568a] bg-blue-50/80 border border-blue-100 px-3 py-1 rounded-full">
+                  {product.category.name}
+                  {product.subCategory?.name ? ` • ${product.subCategory.name}` : ''}
+                </span>
               </div>
             )}
 
-            <h1 className="text-4xl font-heading font-bold text-[#0b2545] mb-4 uppercase tracking-wide">{product.name}</h1>
-            
-            {/* Brand, Category, SKU */}
-            {(product.brand || product.sku || product.category || product.subCategory) && (
-              <div className="flex flex-wrap items-center gap-4 mb-6 text-sm">
-                {product.brand && (
-                  <div className="flex items-center text-gray-500">
-                    <span className="font-bold text-[#0b2545] uppercase tracking-wider text-xs mr-2">Brand:</span> 
-                    <span className="bg-gray-100 px-2 py-1 rounded-md text-gray-700">{product.brand}</span>
-                  </div>
-                )}
-                {product.category?.name && (
-                  <div className="flex items-center text-gray-500">
-                    <span className="font-bold text-[#0b2545] uppercase tracking-wider text-xs mr-2">Category:</span> 
-                    <span className="bg-gray-100 px-2 py-1 rounded-md text-gray-700">{product.category.name}</span>
-                  </div>
-                )}
-                {product.subCategory?.name && (
-                  <div className="flex items-center text-gray-500">
-                    <span className="font-bold text-[#0b2545] uppercase tracking-wider text-xs mr-2">Sub-Category:</span> 
-                    <span className="bg-gray-100 px-2 py-1 rounded-md text-gray-700">{product.subCategory.name}</span>
-                  </div>
-                )}
-                {product.sku && (
-                  <div className="flex items-center text-gray-500">
-                    <span className="font-bold text-[#0b2545] uppercase tracking-wider text-xs mr-2">SKU:</span> 
-                    <span className="bg-gray-100 px-2 py-1 rounded-md text-gray-700 font-mono">{product.sku}</span>
-                  </div>
-                )}
-              </div>
+            {/* Product Title in Bold Red (Exact Reference Style) */}
+            <h1 className="text-3xl sm:text-4xl lg:text-[42px] font-heading font-black text-[#e53524] uppercase tracking-wide mb-6 leading-tight">
+              {product.name}
+            </h1>
+
+            {/* Description Paragraph */}
+            {description && (
+              <p className="text-[#555555] text-base md:text-[17px] leading-[30px] mb-8 font-normal text-justify sm:text-left">
+                {description}
+              </p>
             )}
 
-            <p className="text-gray-500 text-base leading-relaxed mb-10 max-w-lg font-light whitespace-pre-line">
-              {product.fullDescription || product.shortDescription || 'High-precision components manufactured with superior quality materials for reliable performance in industrial applications.'}
-            </p>
-
-            {product.specifications && Object.keys(product.specifications).filter(key => product.specifications[key]).length > 0 ? (
-              <ul className="space-y-5 mb-12">
-                {Object.keys(product.specifications).map((key, idx) => {
-                  const val = product.specifications[key];
-                  if (!val) return null;
-                  return (
-                    <li key={idx} className="flex items-center text-[15px] font-bold text-[#0b2545] group">
-                      <div className="bg-red-50 p-2 rounded-full mr-4 group-hover:scale-110 transition-transform">
-                        <CheckCircle className="w-5 h-5 text-[var(--brand-red)] shrink-0" />
-                      </div>
-                      <span className="capitalize">{key}:</span> <span className="ml-2 font-normal text-gray-500">{val}</span>
+            {/* FEATURES Heading & Bullets (Exact Reference Style) */}
+            {features && features.length > 0 && (
+              <div className="mb-8">
+                <h3 className="text-xl md:text-2xl font-heading font-bold text-[#09568a] uppercase tracking-wide mb-4">
+                  FEATURES
+                </h3>
+                <ul className="space-y-2.5 pl-5 list-disc marker:text-[#09568a] text-[#555555] text-base md:text-[16.5px] leading-[26px]">
+                  {features.map((feat, idx) => (
+                    <li key={idx} className="pl-1">
+                      {feat}
                     </li>
-                  )
-                })}
-              </ul>
-            ) : (
-              <ul className="space-y-5 mb-12">
-                <li className="flex items-center text-[15px] font-bold text-[#0b2545] group">
-                  <div className="bg-red-50 p-2 rounded-full mr-4 group-hover:scale-110 transition-transform">
-                    <CheckCircle className="w-5 h-5 text-[var(--brand-red)] shrink-0" />
-                  </div>
-                  High precision machining
-                </li>
-                <li className="flex items-center text-[15px] font-bold text-[#0b2545] group">
-                  <div className="bg-red-50 p-2 rounded-full mr-4 group-hover:scale-110 transition-transform">
-                    <CheckCircle className="w-5 h-5 text-[var(--brand-red)] shrink-0" />
-                  </div>
-                  Durable and long-lasting
-                </li>
-                <li className="flex items-center text-[15px] font-bold text-[#0b2545] group">
-                  <div className="bg-red-50 p-2 rounded-full mr-4 group-hover:scale-110 transition-transform">
-                    <CheckCircle className="w-5 h-5 text-[var(--brand-red)] shrink-0" />
-                  </div>
-                  Multiple sizes available
-                </li>
-              </ul>
+                  ))}
+                </ul>
+              </div>
             )}
 
-            <div className="flex flex-col sm:flex-row flex-wrap gap-4">
+            {/* APPLICATIONS Heading & Bullets (Exact Reference Style) */}
+            {applications && applications.length > 0 && (
+              <div className="mb-10">
+                <h3 className="text-xl md:text-2xl font-heading font-bold text-[#09568a] uppercase tracking-wide mb-4">
+                  APPLICATIONS
+                </h3>
+                <ul className="space-y-2.5 pl-5 list-disc marker:text-[#09568a] text-[#555555] text-base md:text-[16.5px] leading-[26px]">
+                  {applications.map((app, idx) => (
+                    <li key={idx} className="pl-1">
+                      {app}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Technical Specifications (if present) */}
+            {validSpecs.length > 0 && (
+              <div className="mb-10 p-5 bg-gray-50 rounded-2xl border border-gray-100">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-[#0b2545] mb-3">
+                  Technical Specifications
+                </h4>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {validSpecs.map(([k, v]) => (
+                    <div key={k} className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm">
+                      <div className="text-[11px] uppercase tracking-wider text-gray-400 capitalize">{k}</div>
+                      <div className="text-sm font-bold text-gray-800 mt-0.5">{String(v)}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row flex-wrap gap-4 pt-2">
               <Link 
                 to="/contact"
-                state={{ productName: product.name, productImage: mainImg || fastener1 }}
-                className="inline-flex justify-center items-center px-8 py-3.5 bg-[var(--brand-red)] text-white text-sm font-bold rounded-xl hover:bg-red-700 transition-all uppercase tracking-wider w-full sm:w-auto shadow-[0_4px_14px_0_rgba(230,32,32,0.39)] hover:shadow-[0_6px_20px_rgba(230,32,32,0.23)] hover:-translate-y-0.5"
+                state={{ productName: product.name, productImage: mainImg }}
+                className="inline-flex justify-center items-center px-8 py-3.5 bg-[#e53524] text-white text-sm font-bold rounded-xl hover:bg-red-700 transition-all uppercase tracking-wider shadow-[0_4px_14px_0_rgba(229,53,36,0.39)] hover:shadow-[0_6px_20px_rgba(229,53,36,0.25)] hover:-translate-y-0.5"
               >
                 Request Quote
                 <ArrowRight className="w-4 h-4 ml-2" />
@@ -228,46 +220,134 @@ export const ProductDetails = () => {
               
               <Link 
                 to="/download"
-                className="inline-flex justify-center items-center px-8 py-3.5 bg-white border border-gray-200 text-[#0b2545] text-sm font-bold rounded-xl hover:bg-gray-50 transition-all uppercase tracking-wider w-full sm:w-auto shadow-[0_4px_14px_0_rgb(0,0,0,0.04)] hover:shadow-[0_6px_20px_rgb(0,0,0,0.08)] hover:-translate-y-0.5"
+                className="inline-flex justify-center items-center px-8 py-3.5 bg-white border border-gray-200 text-[#0b2545] text-sm font-bold rounded-xl hover:bg-gray-50 transition-all uppercase tracking-wider shadow-[0_4px_14px_0_rgb(0,0,0,0.04)] hover:shadow-[0_6px_20px_rgb(0,0,0,0.08)] hover:-translate-y-0.5"
               >
+                <Download className="w-4 h-4 mr-2 text-[#e53524]" />
                 Download Catalog
               </Link>
+
+              <a 
+                href={`https://wa.me/919632144367?text=${encodeURIComponent(`Hello Eagle Engineering, I would like to inquire about ${product.name}. Please share pricing and technical specifications.`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex justify-center items-center px-8 py-3.5 bg-[#25D366] text-white text-sm font-bold rounded-xl hover:bg-[#20ba59] transition-all uppercase tracking-wider shadow-[0_4px_14px_0_rgba(37,211,102,0.39)] hover:shadow-[0_6px_20px_rgba(37,211,102,0.25)] hover:-translate-y-0.5"
+              >
+                <svg className="w-4 h-4 mr-2 fill-current" viewBox="0 0 24 24">
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                </svg>
+                WhatsApp
+              </a>
             </div>
           </motion.div>
 
+          {/* Right Column: Circular Product Image with Red Outline & Shadow (Exact Reference Style) */}
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="w-full lg:w-5/12 flex flex-col items-center justify-center lg:sticky lg:top-36"
+          >
+            {/* The Signature Circular Frame (Matches Reference Graphic) */}
+            <div className="relative group w-full max-w-[380px] sm:max-w-[440px] lg:max-w-[480px] flex items-center justify-center">
+              <img 
+                src={mainImg || primaryResolved} 
+                alt={product.name} 
+                className="w-full h-auto max-h-[480px] object-contain transition-transform duration-500 group-hover:scale-105 drop-shadow-sm" 
+              />
+
+              {/* Status Badge */}
+              {(product.isNewProduct || product.isFeatured) && (
+                <div className="absolute top-2 right-2 z-10">
+                  {product.isNewProduct ? (
+                    <span className="px-3 py-1 bg-emerald-500 text-white text-[11px] font-bold rounded-full uppercase tracking-wider shadow-md">
+                      New
+                    </span>
+                  ) : (
+                    <span className="px-3 py-1 bg-amber-500 text-white text-[11px] font-bold rounded-full uppercase tracking-wider shadow-md">
+                      Featured
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Gallery Thumbnails (if multiple images available) */}
+            {galleryImages.length > 1 && (
+              <div className="flex flex-wrap gap-3 mt-8 justify-center max-w-md">
+                {galleryImages.map((img, idx) => (
+                  <button 
+                    key={idx} 
+                    onClick={() => setMainImg(img)}
+                    className={`w-16 h-16 rounded-full border-2 p-1 overflow-hidden transition-all duration-300 ${
+                      mainImg === img 
+                        ? 'border-[#e53524] shadow-md scale-110 ring-2 ring-red-100' 
+                        : 'border-gray-200 hover:border-gray-400 opacity-70 hover:opacity-100'
+                    }`}
+                  >
+                    <img src={img} alt={`Thumbnail ${idx}`} className="w-full h-full object-contain rounded-full" />
+                  </button>
+                ))}
+              </div>
+            )}
+          </motion.div>
+
         </div>
-      </div>
+      </section>
 
       {/* Related Products Section */}
-      <div className="bg-gray-50 py-20 border-t border-gray-100">
+      <section className="bg-gray-50/70 py-20 mt-20 border-t border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between mb-12">
-            <h3 className="text-2xl font-bold font-heading text-[#0b2545] uppercase tracking-wide">
-              RELATED <span className="text-[var(--brand-red)]">PRODUCTS</span>
-            </h3>
-            <Link to="/products" className="text-sm font-bold text-gray-500 hover:text-[var(--brand-red)] transition-colors flex items-center">
-              View All <ArrowRight className="w-4 h-4 ml-1" />
+            <div>
+              <p className="text-xs font-bold uppercase tracking-widest text-[#e53524] mb-1">DISCOVER MORE</p>
+              <h3 className="text-2xl md:text-3xl font-bold font-heading text-[#0b2545] uppercase tracking-wide">
+                RELATED <span className="text-[#e53524]">PRODUCTS</span>
+              </h3>
+            </div>
+            <Link 
+              to="/products" 
+              className="text-sm font-bold text-gray-500 hover:text-[#e53524] transition-colors flex items-center group"
+            >
+              View All <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
             </Link>
           </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
             {relatedProducts.length > 0 ? (
-              relatedProducts.map((prod) => (
-                <Link to={`/products/${prod._id}`} key={prod._id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden group hover:-translate-y-2 hover:shadow-lg transition-all duration-300 block">
-                  <div className="h-48 w-full bg-gray-50/50 p-4 flex items-center justify-center relative overflow-hidden">
-                    <img src={getImageUrl(prod.mainImage) || fastener1} alt={prod.name} className="max-h-full object-contain group-hover:scale-110 transition-transform duration-500" />
-                  </div>
-                  <div className="p-4 text-left border-t border-gray-50">
-                    <h4 className="font-bold text-[#0b2545] group-hover:text-[var(--brand-red)] transition-colors">{prod.name}</h4>
-                  </div>
-                </Link>
-              ))
+              relatedProducts.map((prod) => {
+                const prodImg = resolveProductImage(prod);
+                return (
+                  <Link 
+                    to={`/products/${prod._id}`} 
+                    key={prod._id} 
+                    className="bg-white rounded-2xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_16px_40px_rgba(229,53,36,0.12)] border border-gray-100 hover:border-red-100 transition-all duration-300 group flex flex-col items-center text-center hover:-translate-y-2"
+                  >
+                    {/* Circular Image Container for Related Product */}
+                    <div className="w-36 h-36 flex items-center justify-center mb-5 transition-transform duration-500 group-hover:scale-105">
+                      <img 
+                        src={prodImg} 
+                        alt={prod.name} 
+                        className="max-h-full max-w-full object-contain" 
+                      />
+                    </div>
+                    <h4 className="font-bold text-[#0b2545] group-hover:text-[#e53524] transition-colors text-base line-clamp-1 mb-1">
+                      {prod.name}
+                    </h4>
+                    {prod.category?.name && (
+                      <p className="text-xs text-gray-400 uppercase tracking-wider">{prod.category.name}</p>
+                    )}
+                  </Link>
+                );
+              })
             ) : (
-              <p className="text-gray-500 col-span-full">No related products found.</p>
+              <p className="text-gray-500 col-span-full text-center py-8">No related products found.</p>
             )}
           </div>
         </div>
-      </div>
+      </section>
+
     </div>
   );
 };
+
+export default ProductDetails;

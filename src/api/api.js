@@ -13,7 +13,9 @@ let productsCache = null;
 export const getProducts = async () => {
   if (productsCache) return productsCache;
   try {
-    const response = await fetch(`${API_URL}/products`);
+    const response = await fetch(`${API_URL}/products`, {
+      signal: AbortSignal.timeout(8000)
+    });
     const data = await response.json();
     if (data.success) {
       productsCache = data;
@@ -30,7 +32,9 @@ const productDetailsCache = {};
 export const getProductById = async (id) => {
   if (productDetailsCache[id]) return productDetailsCache[id];
   try {
-    const response = await fetch(`${API_URL}/products/${id}`);
+    const response = await fetch(`${API_URL}/products/${id}`, {
+      signal: AbortSignal.timeout(6000)
+    });
     const data = await response.json();
     if (data.success) {
       productDetailsCache[id] = data;

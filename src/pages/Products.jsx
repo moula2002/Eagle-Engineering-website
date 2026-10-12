@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import fastener1 from '../assets/fastener_1.png';
 import { getProducts, getCategories, getSubCategories, getImageUrl } from '../api/api';
+import { resolveProductImage, defaultProductList } from '../data/productDataHelper';
 
 export const Products = () => {
   const [productsList, setProductsList] = useState([]);
@@ -37,11 +38,23 @@ export const Products = () => {
           getSubCategories()
         ]);
         
-        if (productsJson.success) setProductsList(productsJson.data);
-        if (categoriesJson.success) setCategoriesList(categoriesJson.data);
+        if (productsJson.success && productsJson.data?.length > 0) {
+          setProductsList(productsJson.data);
+        } else {
+          setProductsList(defaultProductList);
+        }
+
+        if (categoriesJson.success && categoriesJson.data?.length > 0) {
+          setCategoriesList(categoriesJson.data);
+        } else {
+          setCategoriesList([{ _id: '1', name: 'Fasteners' }, { _id: '2', name: 'Abrasives' }]);
+        }
+
         if (subCategoriesJson.success) setSubCategoriesList(subCategoriesJson.data);
       } catch (error) {
         console.error('Failed to fetch data:', error);
+        setProductsList(defaultProductList);
+        setCategoriesList([{ _id: '1', name: 'Fasteners' }, { _id: '2', name: 'Abrasives' }]);
       } finally {
         setLoading(false);
       }
@@ -210,29 +223,29 @@ export const Products = () => {
                       No products found matching your search.
                     </div>
                   ) : (
-                    filteredProducts.map((p, idx) => (
-                  <Link 
-                    key={idx} 
-                    to={`/products/${p._id}`}
-                    className="bg-white rounded-2xl border border-gray-100 overflow-hidden group shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] hover:-translate-y-2 transition-all duration-300 block relative"
-                  >
-                    <div className="absolute top-4 right-4 bg-white/90 backdrop-blur rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow-sm text-[var(--brand-red)]">
-                      <Search className="w-4 h-4" />
-                    </div>
-                    <div className="h-56 w-full bg-white p-8 flex items-center justify-center border-b border-gray-50 relative overflow-hidden">
-                      <div className="absolute inset-0 bg-gradient-to-t from-gray-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                      <img 
-                        src={getImageUrl(p.mainImage) || fastener1} 
-                        alt={p.name}
-                        className="max-h-full object-contain group-hover:scale-110 transition-transform duration-500 relative z-10"
-                      />
-                    </div>
-                    <div className="p-5 text-center bg-white group-hover:bg-gray-50/50 transition-colors">
-                      <h3 className="text-[16px] font-bold text-[#0b2545] group-hover:text-[var(--brand-red)] transition-colors tracking-wide">{p.name}</h3>
-                      {p.category && <p className="text-xs text-gray-400 mt-1 uppercase tracking-wider">{p.category.name}</p>}
-                    </div>
-                  </Link>
-                )))}
+                    filteredProducts.map((p, idx) => {
+                      const prodImg = resolveProductImage(p);
+                      return (
+                        <Link 
+                          key={idx} 
+                          to={`/products/${p._id}`}
+                          className="bg-white rounded-2xl border border-gray-100 p-6 flex flex-col items-center text-center group shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_40px_rgba(229,53,36,0.12)] hover:border-red-100 hover:-translate-y-2 transition-all duration-300 block relative"
+                        >
+                          <div className="absolute top-4 right-4 bg-white/90 backdrop-blur rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow-sm text-[#e53524]">
+                            <Search className="w-4 h-4" />
+                          </div>
+                          <div className="w-44 h-44 flex items-center justify-center mb-4 transition-transform duration-500 group-hover:scale-105">
+                            <img 
+                              src={prodImg} 
+                              alt={p.name}
+                              className="max-h-full max-w-full object-contain"
+                            />
+                          </div>
+                          <h3 className="text-[16px] font-bold text-[#0b2545] group-hover:text-[#e53524] transition-colors tracking-wide mb-1">{p.name}</h3>
+                          {p.category && <p className="text-xs text-gray-400 uppercase tracking-wider">{p.category.name}</p>}
+                        </Link>
+                      );
+                    }))}
                 </motion.div>
               )}
             </div>

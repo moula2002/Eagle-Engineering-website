@@ -12,6 +12,7 @@ import logo5 from '../assets/client_logo_5.png';
 import fastener1 from '../assets/fastener_1.png';
 import fastener2 from '../assets/fastener_2.png';
 import { getProducts, getImageUrl } from '../api/api';
+import { resolveProductImage } from '../data/productDataHelper';
 
 export const Home = () => {
   const [productsList, setProductsList] = useState([]);
@@ -299,7 +300,7 @@ export const Home = () => {
                     <svg className="absolute inset-0 w-full h-full text-[var(--brand-red)] drop-shadow-sm" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M100 5C125 5 135 15 155 25C175 35 195 55 195 100C195 145 175 165 155 175C135 185 125 195 100 195C75 195 65 185 45 175C25 165 5 145 5 100C5 55 25 35 45 25C65 15 75 5 100 5Z" stroke="currentColor" strokeWidth="4" fill="white" />
                     </svg>
-                    <img src={getImageUrl(p.mainImage) || fastener1} alt={p.name} className="w-24 h-24 md:w-28 md:h-28 object-contain relative z-10 mix-blend-multiply group-hover:scale-110 transition-transform duration-300" loading="lazy" decoding="async" />
+                    <img src={resolveProductImage(p)} alt={p.name} className="w-24 h-24 md:w-28 md:h-28 object-contain relative z-10 mix-blend-multiply group-hover:scale-110 transition-transform duration-300" loading="lazy" decoding="async" />
                   </Link>
                   <Link 
                     to={`/products/${p._id}`}
