@@ -214,7 +214,7 @@ export const Navbar = () => {
                       <div className="flex items-center">
                         <Link
                           to={link.path}
-                          onClick={() => !isProducts && setMobileMenuOpen(false)}
+                          onClick={() => setMobileMenuOpen(false)}
                           className={`flex-1 flex items-center px-6 py-3 rounded-xl transition-colors ${isActive ? 'bg-[var(--brand-red)] text-white font-bold' : 'text-gray-300 hover:bg-white/5 hover:text-white font-medium'
                             }`}
                         >
