@@ -1,58 +1,75 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, ArrowRight, CheckCircle, Download, Send } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Download } from 'lucide-react';
 import { Link, useParams, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { getProducts, getProductById, getImageUrl } from '../api/api';
 import { resolveProductImage, parseProductContent, getFallbackProduct } from '../data/productDataHelper';
+import { initialProducts } from '../data/catalogSnapshot';
 
 export const ProductDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const fromHome = location.state?.fromHome || false;
-  const [product, setProduct] = useState(null);
-  const [relatedProducts, setRelatedProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [mainImg, setMainImg] = useState('');
+
+  // Immediate lookup from snapshot
+  const initialMatch = initialProducts.find(p => p._id === id || p.sku === id) || getFallbackProduct(id);
+  const [product, setProduct] = useState(initialMatch || null);
+  const [relatedProducts, setRelatedProducts] = useState(() => {
+    return initialProducts.filter(p => p._id !== id).slice(0, 4);
+  });
+  const [loading, setLoading] = useState(!initialMatch);
+  const [mainImg, setMainImg] = useState(initialMatch ? resolveProductImage(initialMatch) : '');
 
   useEffect(() => {
+    let isMounted = true;
     const fetchData = async () => {
       try {
-        setLoading(true);
+        if (!product) setLoading(true);
         // Fetch current product
         const json = await getProductById(id);
-        if (json.success && json.data) {
-          setProduct(json.data);
-          const resolvedImg = resolveProductImage(json.data);
-          setMainImg(resolvedImg);
-        } else {
-          const fallback = getFallbackProduct(id);
-          if (fallback) {
-            setProduct(fallback);
-            setMainImg(fallback.mainImage);
+        if (isMounted) {
+          if (json.success && json.data) {
+            setProduct(json.data);
+            const resolvedImg = resolveProductImage(json.data);
+            setMainImg(resolvedImg);
+          } else {
+            const fallback = getFallbackProduct(id);
+            if (fallback) {
+              setProduct(fallback);
+              setMainImg(resolveProductImage(fallback));
+            }
           }
         }
 
         // Fetch related products
         const allProductsJson = await getProducts();
-        if (allProductsJson.success && allProductsJson.data) {
-          const filtered = allProductsJson.data.filter(p => p._id !== id);
-          setRelatedProducts(filtered.slice(0, 4));
+        if (isMounted && allProductsJson.success && allProductsJson.data) {
+          const currentCat = json.data?.category?.name || product?.category?.name;
+          let related = allProductsJson.data.filter(p => p._id !== id);
+          if (currentCat) {
+            const sameCat = related.filter(p => (p.category?.name || p.category) === currentCat);
+            if (sameCat.length > 0) related = sameCat;
+          }
+          setRelatedProducts(related.slice(0, 4));
         }
       } catch (error) {
-        console.error('Failed to fetch product data:', error);
-        const fallback = getFallbackProduct(id);
-        if (fallback) {
-          setProduct(fallback);
-          setMainImg(fallback.mainImage);
+        console.warn('Failed to fetch product data from server:', error);
+        if (isMounted && !product) {
+          const fallback = getFallbackProduct(id);
+          if (fallback) {
+            setProduct(fallback);
+            setMainImg(resolveProductImage(fallback));
+          }
         }
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
     if (id) {
       fetchData();
     }
+    return () => { isMounted = false; };
   }, [id]);
 
   if (loading) {

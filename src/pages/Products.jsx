@@ -1,185 +1,321 @@
-import React, { useState, useEffect } from 'react';
-import { Search, FolderTree } from 'lucide-react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Search, FolderTree, X, Layers } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import fastener1 from '../assets/fastener_1.png';
 import { getProducts, getCategories, getSubCategories, getImageUrl } from '../api/api';
-import { resolveProductImage, defaultProductList } from '../data/productDataHelper';
+import { resolveProductImage } from '../data/productDataHelper';
+import { initialProducts, initialCategories, initialSubCategories } from '../data/catalogSnapshot';
 
 export const Products = () => {
-  const [productsList, setProductsList] = useState([]);
-  const [categoriesList, setCategoriesList] = useState([]);
-  const [subCategoriesList, setSubCategoriesList] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
   const location = useLocation();
-  const navigate = useNavigate();
+
+  // Instant data initialization - zero blank screen wait
+  const [productsList, setProductsList] = useState(() => initialProducts);
+  const [categoriesList, setCategoriesList] = useState(() => initialCategories);
+  const [subCategoriesList, setSubCategoriesList] = useState(() => initialSubCategories);
+  const [searchQuery, setSearchQuery] = useState('');
+  
   const [selectedCategory, setSelectedCategory] = useState(location.state?.selectedCategory || 'All Products');
   const [selectedSubCategory, setSelectedSubCategory] = useState(location.state?.selectedSubCategory || 'All');
 
-  useEffect(() => {
-    if (location.state?.selectedCategory) setSelectedCategory(location.state.selectedCategory);
-    if (location.state?.selectedSubCategory) setSelectedSubCategory(location.state.selectedSubCategory);
-  }, [location.state]);
-  
+  // Handle route state updates
   useEffect(() => {
     if (location.state?.selectedCategory) {
       setSelectedCategory(location.state.selectedCategory);
-      setSelectedSubCategory(location.state.selectedSubCategory || 'All');
+    }
+    if (location.state?.selectedSubCategory) {
+      setSelectedSubCategory(location.state.selectedSubCategory);
+    } else if (location.state?.selectedCategory) {
+      setSelectedSubCategory('All');
     }
   }, [location.state]);
+
+  // Background revalidation (Stale-While-Revalidate)
   useEffect(() => {
-    const fetchData = async () => {
+    let isMounted = true;
+    const fetchLatestData = async () => {
       try {
-        setLoading(true);
-        const [productsJson, categoriesJson, subCategoriesJson] = await Promise.all([
+        const [productsRes, categoriesRes, subCategoriesRes] = await Promise.allSettled([
           getProducts(),
           getCategories(),
           getSubCategories()
         ]);
-        
-        if (productsJson.success && productsJson.data?.length > 0) {
-          setProductsList(productsJson.data);
-        } else {
-          setProductsList(defaultProductList);
-        }
 
-        if (categoriesJson.success && categoriesJson.data?.length > 0) {
-          setCategoriesList(categoriesJson.data);
-        } else {
-          setCategoriesList([{ _id: '1', name: 'Fasteners' }, { _id: '2', name: 'Abrasives' }]);
+        if (isMounted) {
+          if (productsRes.status === 'fulfilled' && productsRes.value?.success && productsRes.value.data?.length > 0) {
+            setProductsList(productsRes.value.data);
+          }
+          if (categoriesRes.status === 'fulfilled' && categoriesRes.value?.success && categoriesRes.value.data?.length > 0) {
+            setCategoriesList(categoriesRes.value.data);
+          }
+          if (subCategoriesRes.status === 'fulfilled' && subCategoriesRes.value?.success && subCategoriesRes.value.data?.length > 0) {
+            setSubCategoriesList(subCategoriesRes.value.data);
+          }
         }
-
-        if (subCategoriesJson.success) setSubCategoriesList(subCategoriesJson.data);
       } catch (error) {
-        console.error('Failed to fetch data:', error);
-        setProductsList(defaultProductList);
-        setCategoriesList([{ _id: '1', name: 'Fasteners' }, { _id: '2', name: 'Abrasives' }]);
-      } finally {
-        setLoading(false);
+        console.warn('Background refresh encountered error, using current cache:', error);
       }
     };
-    fetchData();
+
+    fetchLatestData();
+    return () => { isMounted = false; };
   }, []);
 
-  const allCategoryNames = ['All Products', ...categoriesList.map(c => c.name)];
-  
-  const currentSubCategories = selectedCategory === 'All Products' 
-    ? [] 
-    : subCategoriesList.filter(sc => sc.category && sc.category.name === selectedCategory);
+  // Category counts computation for rich sidebar badges
+  const categoryCounts = useMemo(() => {
+    const counts = { 'All Products': productsList.length };
+    productsList.forEach(p => {
+      const cName = (p.category?.name || (typeof p.category === 'string' ? p.category : '')).trim();
+      if (cName) {
+        counts[cName] = (counts[cName] || 0) + 1;
+      }
+    });
+    return counts;
+  }, [productsList]);
 
-  const selectedSubCategoryData = selectedSubCategory === 'All'
-    ? null
-    : subCategoriesList.find(sc => sc.name === selectedSubCategory);
+  // Build clean list of unique categories
+  const allCategoryNames = useMemo(() => {
+    const names = ['All Products'];
+    categoriesList.forEach(c => {
+      if (c?.name && !names.includes(c.name)) {
+        names.push(c.name);
+      }
+    });
+    // Ensure any category found on products is also selectable
+    productsList.forEach(p => {
+      const cName = (p.category?.name || (typeof p.category === 'string' ? p.category : '')).trim();
+      if (cName && !names.includes(cName)) {
+        names.push(cName);
+      }
+    });
+    return names;
+  }, [categoriesList, productsList]);
 
-  // Filter products based on search query, category, and subcategory
-  const filteredProducts = productsList.filter(p => {
-    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === 'All Products' || (p.category && p.category.name === selectedCategory);
-    const matchesSubCategory = selectedSubCategory === 'All' || (p.subCategory && p.subCategory.name === selectedSubCategory);
-    
-    return matchesSearch && matchesCategory && matchesSubCategory;
-  });
+  // Subcategories relevant to the current selected category
+  const currentSubCategories = useMemo(() => {
+    if (selectedCategory === 'All Products') return [];
+    const selNorm = selectedCategory.trim().toLowerCase().replace(/-/g, ' ');
+    return subCategoriesList.filter(sc => {
+      const scCat = (sc.category?.name || (typeof sc.category === 'string' ? sc.category : '')).trim().toLowerCase().replace(/-/g, ' ');
+      return scCat === selNorm;
+    });
+  }, [selectedCategory, subCategoriesList]);
+
+  // Subcategory metadata banner info if selected
+  const selectedSubCategoryData = useMemo(() => {
+    if (selectedSubCategory === 'All') return null;
+    return subCategoriesList.find(sc => sc.name.toLowerCase() === selectedSubCategory.toLowerCase());
+  }, [selectedSubCategory, subCategoriesList]);
+
+  // Fast filtered products
+  const filteredProducts = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    const selCatNorm = selectedCategory.trim().toLowerCase().replace(/-/g, ' ');
+    const selSubNorm = selectedSubCategory.trim().toLowerCase();
+
+    return productsList.filter(p => {
+      // 1. Category Filter
+      let matchesCategory = true;
+      if (selCatNorm !== 'all products') {
+        const pCatName = (p.category?.name || (typeof p.category === 'string' ? p.category : '')).trim().toLowerCase().replace(/-/g, ' ');
+        matchesCategory = pCatName === selCatNorm;
+      }
+
+      // 2. Subcategory Filter
+      let matchesSubCategory = true;
+      if (selSubNorm !== 'all') {
+        const pSubName = (p.subCategory?.name || (typeof p.subCategory === 'string' ? p.subCategory : '')).trim().toLowerCase();
+        matchesSubCategory = pSubName === selSubNorm;
+      }
+
+      // 3. Search Filter
+      let matchesSearch = true;
+      if (query) {
+        const pName = (p.name || '').toLowerCase();
+        const pDesc = (p.shortDescription || '').toLowerCase();
+        const pSku = (p.sku || '').toLowerCase();
+        const pCat = (p.category?.name || (typeof p.category === 'string' ? p.category : '')).toLowerCase();
+        const pSub = (p.subCategory?.name || (typeof p.subCategory === 'string' ? p.subCategory : '')).toLowerCase();
+        matchesSearch = pName.includes(query) || pDesc.includes(query) || pSku.includes(query) || pCat.includes(query) || pSub.includes(query);
+      }
+
+      return matchesCategory && matchesSubCategory && matchesSearch;
+    });
+  }, [productsList, selectedCategory, selectedSubCategory, searchQuery]);
 
   return (
     <div className="bg-white min-h-screen">
       {/* Header Banner */}
       <div className="relative bg-[#0b2545] pt-36 pb-20 overflow-hidden">
-        <div className="absolute inset-0 opacity-40 bg-cover bg-center mix-blend-overlay" style={{ backgroundImage: 'url(https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80)' }}></div>
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0b2545]/50 to-transparent" />
+        <div 
+          className="absolute inset-0 opacity-40 bg-cover bg-center mix-blend-overlay" 
+          style={{ backgroundImage: 'url(https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80)' }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0b2545]/70 to-transparent" />
         <div className="absolute inset-0 bg-gradient-to-b from-[#0b2545]/60 to-transparent h-32" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-white">
           <p className="text-sm tracking-widest text-[var(--brand-red)] mb-2 uppercase font-bold">OUR PRODUCTS</p>
           <h2 className="text-4xl md:text-5xl font-heading font-bold mb-4 uppercase tracking-wide">PRODUCTS</h2>
-          <p className="text-sm text-gray-300 font-medium tracking-wide">Home &gt; Products</p>
+          <div className="flex items-center text-sm text-gray-300 font-medium tracking-wide gap-2">
+            <Link to="/" className="hover:text-white transition-colors">Home</Link>
+            <span>&gt;</span>
+            <span className="text-white font-semibold">Products</span>
+            {selectedCategory !== 'All Products' && (
+              <>
+                <span>&gt;</span>
+                <span className="text-[var(--brand-red)] font-semibold">{selectedCategory}</span>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
-      <section className="py-24 bg-gray-50/50">
+      <section className="py-16 md:py-20 bg-gray-50/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           
+          {/* Top Controls Bar */}
           <motion.div 
-            initial={{ opacity: 0, y: -20 }}
+            initial={{ opacity: 0, y: -15 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.4 }}
             className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4"
           >
-            <h3 className="font-heading font-bold text-[#0b2545] text-2xl uppercase tracking-wide">PRODUCT CATEGORIES</h3>
+            <div>
+              <h3 className="font-heading font-bold text-[#0b2545] text-2xl uppercase tracking-wide">
+                {selectedCategory === 'All Products' ? 'ALL PRODUCTS' : selectedCategory.toUpperCase()}
+              </h3>
+              <p className="text-xs text-gray-500 font-medium mt-1">
+                Showing {filteredProducts.length} {filteredProducts.length === 1 ? 'item' : 'items'}
+                {searchQuery && <span> matching "<strong className="text-gray-800">{searchQuery}</strong>"</span>}
+              </p>
+            </div>
             
+            {/* Search Input */}
             <div className="w-full md:w-auto flex justify-end">
-              <div className="flex w-full md:w-96 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-xl overflow-hidden">
+              <div className="flex w-full md:w-96 shadow-[0_4px_20px_rgb(0,0,0,0.04)] rounded-xl overflow-hidden border border-gray-200/80 bg-white focus-within:border-[var(--brand-red)] transition-all">
                 <input 
                   type="text" 
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search products..." 
-                  className="flex-grow px-5 py-3.5 border-none focus:outline-none bg-white text-[15px]"
+                  placeholder="Search products, screws, parts..." 
+                  className="flex-grow px-4 py-3 border-none focus:outline-none bg-white text-[15px] text-gray-800"
                 />
-                <button className="bg-[var(--brand-red)] text-white px-6 py-3.5 hover:bg-red-700 transition-colors flex items-center justify-center">
-                  <Search className="w-5 h-5" />
+                {searchQuery && (
+                  <button 
+                    onClick={() => setSearchQuery('')}
+                    className="px-3 text-gray-400 hover:text-gray-600 transition-colors flex items-center justify-center"
+                    title="Clear search"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+                <button 
+                  className="bg-[var(--brand-red)] text-white px-5 py-3 hover:bg-red-700 transition-colors flex items-center justify-center shrink-0"
+                  title="Search"
+                >
+                  <Search className="w-4 h-4" />
                 </button>
               </div>
             </div>
           </motion.div>
 
-          <div className="flex flex-col md:flex-row gap-10">
+          <div className="flex flex-col lg:flex-row gap-8 lg:gap-10">
             
-            {/* Sidebar */}
+            {/* Sidebar Categories */}
             <motion.div 
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              className="w-full md:w-1/4 shrink-0"
+              transition={{ duration: 0.4, delay: 0.1 }}
+              className="w-full lg:w-72 shrink-0"
             >
-              <div className="flex flex-col bg-white rounded-2xl overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
-                {allCategoryNames.map((cat, idx) => (
-                  <button 
-                    key={idx}
-                    onClick={() => {
-                      setSelectedCategory(cat);
-                      setSelectedSubCategory('All');
-                    }}
-                    className={`text-left px-6 py-4 text-[15px] font-bold border-b border-gray-50 last:border-b-0 transition-all ${
-                      selectedCategory === cat 
-                        ? 'bg-[var(--brand-red)] text-white' 
-                        : 'bg-white text-gray-600 hover:bg-gray-50 hover:text-[#0b2545] hover:pl-8'
-                    }`}
-                  >
-                    {cat}
-                  </button>
-                ))}
+              <div className="bg-white rounded-2xl overflow-hidden shadow-[0_4px_25px_rgb(0,0,0,0.04)] border border-gray-100 sticky top-24">
+                <div className="px-5 py-4 bg-gray-50/80 border-b border-gray-100">
+                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-[var(--brand-red)]" />
+                    Categories ({allCategoryNames.length - 1})
+                  </h4>
+                </div>
+                
+                <div className="flex flex-col max-h-[70vh] overflow-y-auto [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-thumb]:rounded-full">
+                  {allCategoryNames.map((cat, idx) => {
+                    const count = categoryCounts[cat] || (cat === 'All Products' ? productsList.length : 0);
+                    const isSelected = selectedCategory === cat;
+                    return (
+                      <button 
+                        key={idx}
+                        onClick={() => {
+                          setSelectedCategory(cat);
+                          setSelectedSubCategory('All');
+                        }}
+                        className={`text-left px-5 py-3.5 text-[14px] font-semibold border-b border-gray-50 last:border-b-0 transition-all flex items-center justify-between group ${
+                          isSelected 
+                            ? 'bg-[var(--brand-red)] text-white shadow-sm font-bold' 
+                            : 'bg-white text-gray-700 hover:bg-gray-50 hover:text-[#0b2545] hover:pl-6'
+                        }`}
+                      >
+                        <span className="truncate pr-2">{cat}</span>
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-bold shrink-0 transition-colors ${
+                          isSelected 
+                            ? 'bg-white/20 text-white' 
+                            : 'bg-gray-100 text-gray-500 group-hover:bg-red-50 group-hover:text-[var(--brand-red)]'
+                        }`}>
+                          {count}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </motion.div>
 
-            {/* Main Content */}
-            <div className="w-full md:w-3/4 flex flex-col">
+            {/* Main Content Area */}
+            <div className="w-full lg:flex-1 flex flex-col">
               
-              {/* Subcategories Grid (shown when 'All' is selected) */}
-              {selectedSubCategory === 'All' && currentSubCategories.length > 0 && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
-                  {currentSubCategories.map((sub, idx) => (
-                    <button 
-                      key={idx}
-                      onClick={() => setSelectedSubCategory(sub.name)}
-                      className="bg-white rounded-2xl border border-gray-100 overflow-hidden group shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] hover:-translate-y-2 transition-all duration-300 text-left w-full flex flex-col items-center justify-center p-8"
+              {/* Subcategories Filter Pills (shown when current category has subcategories) */}
+              {currentSubCategories.length > 0 && (
+                <div className="bg-white rounded-2xl p-4 mb-6 shadow-[0_4px_20px_rgb(0,0,0,0.03)] border border-gray-100">
+                  <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                    <FolderTree className="w-3.5 h-3.5 text-[var(--brand-red)]" />
+                    Filter by Subcategory
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => setSelectedSubCategory('All')}
+                      className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                        selectedSubCategory === 'All'
+                          ? 'bg-[#0b2545] text-white shadow-sm'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
                     >
-                      {sub.image ? (
-                        <img 
-                          src={getImageUrl(sub.image)} 
-                          alt={sub.name}
-                          className="h-32 w-32 object-contain mb-6 group-hover:scale-110 transition-transform duration-500"
-                        />
-                      ) : (
-                        <div className="h-32 w-32 mb-6 rounded-full bg-gray-50 flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
-                          <FolderTree className="w-10 h-10 text-[var(--brand-red)] opacity-50" />
-                        </div>
-                      )}
-                      <h3 className="text-xl font-bold text-[#0b2545] group-hover:text-[var(--brand-red)] transition-colors tracking-wide text-center">{sub.name}</h3>
-                      {sub.description && (
-                        <p className="text-sm text-gray-500 mt-3 text-center line-clamp-2 leading-relaxed">{sub.description}</p>
-                      )}
+                      All in {selectedCategory} ({filteredProducts.length})
                     </button>
-                  ))}
+                    {currentSubCategories.map((sub, idx) => {
+                      const isSubSelected = selectedSubCategory.toLowerCase() === sub.name.toLowerCase();
+                      const subCount = productsList.filter(p => {
+                        const pSub = (p.subCategory?.name || (typeof p.subCategory === 'string' ? p.subCategory : '')).trim().toLowerCase();
+                        return pSub === sub.name.trim().toLowerCase();
+                      }).length;
+
+                      return (
+                        <button
+                          key={idx}
+                          onClick={() => setSelectedSubCategory(sub.name)}
+                          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                            isSubSelected
+                              ? 'bg-[var(--brand-red)] text-white shadow-sm'
+                              : 'bg-gray-100 text-gray-700 hover:bg-red-50 hover:text-[var(--brand-red)]'
+                          }`}
+                        >
+                          {sub.name}
+                          <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                            isSubSelected ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-600'
+                          }`}>
+                            {subCount}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
 
@@ -188,66 +324,95 @@ export const Products = () => {
                 <motion.div 
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="bg-gray-50 border border-gray-100 rounded-2xl p-6 mb-8 flex flex-col md:flex-row items-center md:items-start gap-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)]"
+                  className="bg-white border border-gray-100 rounded-2xl p-5 mb-6 flex flex-col md:flex-row items-center md:items-start gap-5 shadow-[0_4px_20px_rgb(0,0,0,0.03)]"
                 >
                   {selectedSubCategoryData.image && (
                     <img 
                       src={getImageUrl(selectedSubCategoryData.image)} 
                       alt={selectedSubCategoryData.name} 
-                      className="w-32 h-32 object-contain rounded-xl bg-white border border-gray-100 p-2 shadow-sm"
+                      className="w-24 h-24 object-contain rounded-xl bg-gray-50 border border-gray-100 p-2 shadow-sm"
                     />
                   )}
                   <div className="flex-1 text-center md:text-left">
-                    <h4 className="text-xl font-bold text-[#0b2545] mb-2">{selectedSubCategoryData.name}</h4>
+                    <h4 className="text-lg font-bold text-[#0b2545] mb-1">{selectedSubCategoryData.name}</h4>
                     {selectedSubCategoryData.description && (
-                      <p className="text-gray-600 text-sm leading-relaxed">{selectedSubCategoryData.description}</p>
+                      <p className="text-gray-600 text-xs leading-relaxed">{selectedSubCategoryData.description}</p>
                     )}
                   </div>
                 </motion.div>
               )}
 
-              {/* Products Grid (shown when a specific subcategory is selected, or if there are no subcategories) */}
-              {!(selectedSubCategory === 'All' && currentSubCategories.length > 0) && (
+              {/* Products Grid */}
+              {filteredProducts.length === 0 ? (
+                <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center shadow-[0_4px_25px_rgb(0,0,0,0.03)]">
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-50 flex items-center justify-center text-[var(--brand-red)]">
+                    <Search className="w-8 h-8 opacity-60" />
+                  </div>
+                  <h4 className="text-lg font-bold text-[#0b2545] mb-2">No Products Found</h4>
+                  <p className="text-gray-500 text-sm max-w-md mx-auto mb-6">
+                    {searchQuery 
+                      ? `We couldn't find any products matching "${searchQuery}". Try a different search term or clear the filter.`
+                      : `No products available under ${selectedCategory}.`
+                    }
+                  </p>
+                  <button
+                    onClick={() => {
+                      setSelectedCategory('All Products');
+                      setSelectedSubCategory('All');
+                      setSearchQuery('');
+                    }}
+                    className="px-6 py-2.5 bg-[#0b2545] text-white rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-[var(--brand-red)] transition-colors"
+                  >
+                    View All Products
+                  </button>
+                </div>
+              ) : (
                 <motion.div 
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ duration: 0.5, delay: 0.3 }}
-                  className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"
+                  transition={{ duration: 0.3 }}
+                  className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6"
                 >
-                  {loading ? (
-                    <div className="col-span-full py-20 flex justify-center">
-                      <div className="w-10 h-10 border-4 border-gray-200 border-t-[var(--brand-red)] rounded-full animate-spin"></div>
-                    </div>
-                  ) : filteredProducts.length === 0 ? (
-                    <div className="col-span-full py-20 text-center text-gray-500">
-                      No products found matching your search.
-                    </div>
-                  ) : (
-                    filteredProducts.map((p, idx) => {
-                      const prodImg = resolveProductImage(p);
-                      return (
-                        <Link 
-                          key={idx} 
-                          to={`/products/${p._id}`}
-                          className="bg-white rounded-2xl border border-gray-100 p-6 flex flex-col items-center text-center group shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_40px_rgba(229,53,36,0.12)] hover:border-red-100 hover:-translate-y-2 transition-all duration-300 block relative"
-                        >
-                          <div className="absolute top-4 right-4 bg-white/90 backdrop-blur rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow-sm text-[#e53524]">
-                            <Search className="w-4 h-4" />
-                          </div>
-                          <div className="w-44 h-44 flex items-center justify-center mb-4 transition-transform duration-500 group-hover:scale-105">
-                            <img 
-                              src={prodImg} 
-                              alt={p.name}
-                              className="max-h-full max-w-full object-contain"
-                            />
-                          </div>
-                          <h3 className="text-[16px] font-bold text-[#0b2545] group-hover:text-[#e53524] transition-colors tracking-wide mb-1">{p.name}</h3>
-                          {p.category && <p className="text-xs text-gray-400 uppercase tracking-wider">{p.category.name}</p>}
-                        </Link>
-                      );
-                    }))}
+                  {filteredProducts.map((p, idx) => {
+                    const prodImg = resolveProductImage(p);
+                    const catName = p.category?.name || (typeof p.category === 'string' ? p.category : '');
+                    
+                    return (
+                      <Link 
+                        key={p._id || idx} 
+                        to={`/products/${p._id}`}
+                        className="bg-white rounded-2xl border border-gray-100 p-6 flex flex-col items-center text-center group shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-[0_16px_36px_rgba(229,53,36,0.12)] hover:border-red-100 hover:-translate-y-1.5 transition-all duration-300 block relative"
+                      >
+                        <div className="absolute top-4 right-4 bg-white/90 backdrop-blur rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow-sm text-[#e53524]">
+                          <Search className="w-4 h-4" />
+                        </div>
+                        
+                        {/* Circular Image Container with crisp shadow */}
+                        <div className="w-40 h-40 flex items-center justify-center mb-5 transition-transform duration-500 group-hover:scale-105">
+                          <img 
+                            src={prodImg} 
+                            alt={p.name}
+                            loading="lazy"
+                            className="max-h-full max-w-full object-contain"
+                          />
+                        </div>
+
+                        {/* Title & Category Badge */}
+                        <h3 className="text-[15px] font-bold text-[#0b2545] group-hover:text-[#e53524] transition-colors tracking-wide mb-1.5 line-clamp-2">
+                          {p.name}
+                        </h3>
+                        
+                        {catName && (
+                          <span className="text-[11px] font-semibold text-gray-500 bg-gray-50 border border-gray-100 px-2.5 py-0.5 rounded-full uppercase tracking-wider mt-auto">
+                            {catName}
+                          </span>
+                        )}
+                      </Link>
+                    );
+                  })}
                 </motion.div>
               )}
+
             </div>
 
           </div>

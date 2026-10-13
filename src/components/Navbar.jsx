@@ -4,35 +4,40 @@ import { Menu, X, ChevronRight } from 'lucide-react';
 import logoNew from '../assets/logo_new.png';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getCategories, getSubCategories } from '../api/api';
+import { initialCategories, initialSubCategories } from '../data/catalogSnapshot';
 
 export const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [categories, setCategories] = useState([]);
-  const [subCategories, setSubCategories] = useState([]);
+  const [categories, setCategories] = useState(() => initialCategories);
+  const [subCategories, setSubCategories] = useState(() => initialSubCategories);
   const [showDropdown, setShowDropdown] = useState(false);
   const [mobileProductsExpanded, setMobileProductsExpanded] = useState(false);
   const location = useLocation();
   const activePath = location.pathname;
 
   useEffect(() => {
+    let isMounted = true;
     const fetchData = async () => {
       try {
-        const [catsRes, subCatsRes] = await Promise.all([
+        const [catsRes, subCatsRes] = await Promise.allSettled([
           getCategories(),
           getSubCategories()
         ]);
-        if (catsRes.success) setCategories(catsRes.data);
-        if (subCatsRes.success) setSubCategories(subCatsRes.data);
-        console.log("NAVBAR DATA:", {
-          categories: catsRes.data,
-          subCategories: subCatsRes.data
-        });
+        if (isMounted) {
+          if (catsRes.status === 'fulfilled' && catsRes.value?.success && catsRes.value.data?.length > 0) {
+            setCategories(catsRes.value.data);
+          }
+          if (subCatsRes.status === 'fulfilled' && subCatsRes.value?.success && subCatsRes.value.data?.length > 0) {
+            setSubCategories(subCatsRes.value.data);
+          }
+        }
       } catch (error) {
-        console.error('Failed to fetch navbar data:', error);
+        console.warn('Navbar background refresh error:', error);
       }
     };
     fetchData();
+    return () => { isMounted = false; };
   }, []);
 
   useEffect(() => {

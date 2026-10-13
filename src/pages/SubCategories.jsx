@@ -3,13 +3,14 @@ import { useLocation, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FolderTree } from 'lucide-react';
 import { getCategories, getSubCategories, getImageUrl } from '../api/api';
+import { initialCategories, initialSubCategories } from '../data/catalogSnapshot';
 
 export const SubCategories = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [categoriesList, setCategoriesList] = useState([]);
-  const [subCategoriesList, setSubCategoriesList] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [categoriesList, setCategoriesList] = useState(() => initialCategories);
+  const [subCategoriesList, setSubCategoriesList] = useState(() => initialSubCategories);
+  const [loading, setLoading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(location.state?.selectedCategory || '');
 
   useEffect(() => {
@@ -19,27 +20,37 @@ export const SubCategories = () => {
   }, [location.state]);
 
   useEffect(() => {
+    let isMounted = true;
     const fetchData = async () => {
       try {
-        setLoading(true);
-        const [categoriesJson, subCategoriesJson] = await Promise.all([
+        const [categoriesJson, subCategoriesJson] = await Promise.allSettled([
           getCategories(),
           getSubCategories()
         ]);
         
-        if (categoriesJson.success) setCategoriesList(categoriesJson.data);
-        if (subCategoriesJson.success) setSubCategoriesList(subCategoriesJson.data);
+        if (isMounted) {
+          if (categoriesJson.status === 'fulfilled' && categoriesJson.value?.success && categoriesJson.value.data?.length > 0) {
+            setCategoriesList(categoriesJson.value.data);
+          }
+          if (subCategoriesJson.status === 'fulfilled' && subCategoriesJson.value?.success && subCategoriesJson.value.data?.length > 0) {
+            setSubCategoriesList(subCategoriesJson.value.data);
+          }
+        }
       } catch (error) {
-        console.error('Error fetching data:', error);
+        console.warn('SubCategories background refresh error:', error);
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
 
     fetchData();
+    return () => { isMounted = false; };
   }, []);
 
-  const currentSubCategories = subCategoriesList.filter(sc => sc.category && sc.category.name === selectedCategory);
+  const currentSubCategories = subCategoriesList.filter(sc => {
+    const scCat = (sc.category?.name || (typeof sc.category === 'string' ? sc.category : '')).trim().toLowerCase();
+    return scCat === selectedCategory.trim().toLowerCase();
+  });
   const allCategoryNames = categoriesList.map(c => c.name);
 
   // If we selected a category and it has no subcategories, we should probably just redirect to products page

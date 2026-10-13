@@ -9,6 +9,7 @@ import zincImg from '../assets/zinc_fastener.png';
 import cuttingWheelImg from '../assets/cutting_wheel.png';
 import grindingWheelImg from '../assets/grinding_wheel.png';
 import fastener1 from '../assets/fastener_1.png';
+import { initialProducts } from './catalogSnapshot';
 
 export const knownProductCatalog = {
   csk: {
@@ -186,17 +187,30 @@ export const resolveProductImage = (product) => {
     return known.image;
   }
   
-  // Custom upload image
+  // Custom upload or static product image
   if (product.mainImage) {
     if (product.mainImage.startsWith('/uploads')) {
       return `https://eagle-engineering-server.onrender.com${product.mainImage}`;
     }
-    if (product.mainImage.startsWith('http')) {
+    if (product.mainImage.startsWith('http') || product.mainImage.startsWith('/products/')) {
       return product.mainImage;
     }
-    if (product.mainImage.startsWith('data:image') && product.mainImage.length > 500) {
-      return product.mainImage;
+    if (product.mainImage.startsWith('data:image')) {
+      // Find clean static path from initialProducts
+      const match = initialProducts.find(p => p._id === product._id || (p.name && product.name && p.name.toLowerCase().trim() === product.name.toLowerCase().trim()));
+      if (match && match.mainImage && match.mainImage.startsWith('/products/')) {
+        return match.mainImage;
+      }
+      if (product.mainImage.length > 500) {
+        return product.mainImage;
+      }
     }
+  }
+
+  // Check initialProducts for static fallback
+  const fallbackMatch = initialProducts.find(p => p._id === product._id || (p.name && product.name && p.name.toLowerCase().trim() === product.name.toLowerCase().trim()));
+  if (fallbackMatch && fallbackMatch.mainImage && fallbackMatch.mainImage.startsWith('/products/')) {
+    return fallbackMatch.mainImage;
   }
 
   return fastener1;
@@ -285,9 +299,18 @@ export const parseProductContent = (product) => {
 
 export const getFallbackProduct = (idOrSlug = '') => {
   if (!idOrSlug) return null;
-  const s = String(idOrSlug).toLowerCase();
+  const s = String(idOrSlug).toLowerCase().trim();
 
-  // Known MongoDB IDs and slugs
+  // 1. Direct match by ID or SKU in initialProducts
+  const exactMatch = initialProducts.find(p => p._id === idOrSlug || p.sku === idOrSlug);
+  if (exactMatch) {
+    return {
+      ...exactMatch,
+      mainImage: resolveProductImage(exactMatch)
+    };
+  }
+
+  // 2. Known MongoDB IDs and slugs
   if (s === '6ac794d75e1e58a06dec9d97' || s.includes('csk')) {
     return {
       _id: '6ac794d75e1e58a06dec9d97',
@@ -296,7 +319,7 @@ export const getFallbackProduct = (idOrSlug = '') => {
       features: knownProductCatalog.csk.features,
       applications: knownProductCatalog.csk.applications,
       mainImage: knownProductCatalog.csk.image,
-      category: { name: 'Fasteners' }
+      category: { name: 'CSK-Head-Screws' }
     };
   }
   if (s === '6aca0059e751aa9cd10a6224' || s.includes('pan')) {
@@ -307,7 +330,7 @@ export const getFallbackProduct = (idOrSlug = '') => {
       features: knownProductCatalog.pan.features,
       applications: knownProductCatalog.pan.applications,
       mainImage: knownProductCatalog.pan.image,
-      category: { name: 'Fasteners' }
+      category: { name: 'Pan Head Screws' }
     };
   }
   for (const key of Object.keys(knownProductCatalog)) {
@@ -324,20 +347,20 @@ export const getFallbackProduct = (idOrSlug = '') => {
       };
     }
   }
+
+  // 3. Name substring match in initialProducts
+  const nameMatch = initialProducts.find(p => p.name.toLowerCase().includes(s));
+  if (nameMatch) {
+    return {
+      ...nameMatch,
+      mainImage: resolveProductImage(nameMatch)
+    };
+  }
+
   return null;
 };
 
-export const defaultProductList = [
-  { _id: '6ac794d75e1e58a06dec9d97', name: 'CSK HEAD SCREWS', category: { name: 'Fasteners' }, mainImage: cskImg },
-  { _id: '6aca0059e751aa9cd10a6224', name: 'PAN HEAD SCREWS', category: { name: 'Fasteners' }, mainImage: panImg },
-  { _id: 'truss-head-screws', name: 'TRUSS/BUTTON HEAD SCREWS', category: { name: 'Fasteners' }, mainImage: trussImg },
-  { _id: 'frame-fixing-screws', name: 'FRAME FIXING SCREWS', category: { name: 'Fasteners' }, mainImage: frameFixingImg },
-  { _id: 'wedge-anchors', name: 'WEDGE ANCHORS', category: { name: 'Fasteners' }, mainImage: wedgeAnchorImg },
-  { _id: 'chipboard-screws', name: 'CHIPBOARD SCREWS', category: { name: 'Fasteners' }, mainImage: chipboardImg },
-  { _id: 'drywall-screws', name: 'DRYWALL SCREWS', category: { name: 'Fasteners' }, mainImage: drywallImg },
-  { _id: 'zinc-fasteners', name: 'ZINC FASTENERS', category: { name: 'Fasteners' }, mainImage: zincImg },
-  { _id: 'cutting-wheels', name: 'CUTTING WHEELS', category: { name: 'Abrasives' }, mainImage: cuttingWheelImg },
-  { _id: 'grinding-wheels', name: 'GRINDING WHEELS', category: { name: 'Abrasives' }, mainImage: grindingWheelImg },
-];
+export const defaultProductList = initialProducts;
+
 
 

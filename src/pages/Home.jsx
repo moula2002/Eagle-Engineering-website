@@ -13,10 +13,11 @@ import fastener1 from '../assets/fastener_1.png';
 import fastener2 from '../assets/fastener_2.png';
 import { getProducts, getImageUrl } from '../api/api';
 import { resolveProductImage } from '../data/productDataHelper';
+import { initialProducts } from '../data/catalogSnapshot';
 
 export const Home = () => {
-  const [productsList, setProductsList] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [productsList, setProductsList] = useState(() => initialProducts);
+  const [loading, setLoading] = useState(false);
   const [skipAnimation, setSkipAnimation] = useState(false);
 
   useEffect(() => {
@@ -26,19 +27,21 @@ export const Home = () => {
   }, []);
 
   useEffect(() => {
+    let isMounted = true;
     const fetchProducts = async () => {
       try {
         const json = await getProducts();
-        if (json.success) {
+        if (isMounted && json.success && json.data) {
           setProductsList(json.data);
         }
       } catch (error) {
-        console.error('Failed to fetch products:', error);
+        console.warn('Home page products refresh error:', error);
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
     fetchProducts();
+    return () => { isMounted = false; };
   }, []);
 
   useEffect(() => {

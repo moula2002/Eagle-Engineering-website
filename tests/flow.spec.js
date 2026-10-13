@@ -18,11 +18,11 @@ test('Check main flow based on exact design image', async ({ page }) => {
   // Wait for URL to change to /products
   await expect(page).toHaveURL(/.*products/);
 
-  // Verify Products section exists
-  await expect(page.locator('h2:has-text("OUR PRODUCTS")')).toBeVisible();
+  // Verify Products heading exists
+  await expect(page.locator('h2:has-text("PRODUCTS")')).toBeVisible();
 
   // Verify fastener products are present
-  await expect(page.locator('text=Industrial Gears').first()).toBeVisible();
-  await expect(page.locator('text=Shaft Components').first()).toBeVisible();
-  await expect(page.locator('text=Custom Solutions').first()).toBeVisible();
+  await expect(page.locator('text=CSK HEAD SCREWS').first()).toBeVisible();
+  await expect(page.locator('text=PAN HEAD SCREWS').first()).toBeVisible();
+  await expect(page.locator('text=DRYWALL SCREWS').first()).toBeVisible();
 });
