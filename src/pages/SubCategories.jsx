@@ -1,23 +1,45 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation, Link, useNavigate } from 'react-router-dom';
+import { useLocation, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FolderTree } from 'lucide-react';
 import { getCategories, getSubCategories, getImageUrl } from '../api/api';
-import { initialCategories, initialSubCategories } from '../data/catalogSnapshot';
+import { initialCategories, initialSubCategories, initialProducts } from '../data/catalogSnapshot';
 
 export const SubCategories = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [categoriesList, setCategoriesList] = useState(() => initialCategories);
   const [subCategoriesList, setSubCategoriesList] = useState(() => initialSubCategories);
   const [loading, setLoading] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState(location.state?.selectedCategory || '');
 
+  // Read category with priority: URL query param -> route state -> sessionStorage -> first available category
+  const initialCategory = 
+    searchParams.get('category') || 
+    location.state?.selectedCategory || 
+    sessionStorage.getItem('eagle_selected_category') || 
+    '';
+
+  const [selectedCategory, setSelectedCategory] = useState(initialCategory);
+
+  // Synchronize state with URL or route updates
   useEffect(() => {
-    if (location.state?.selectedCategory) {
+    const urlCategory = searchParams.get('category');
+    if (urlCategory) {
+      setSelectedCategory(urlCategory);
+      sessionStorage.setItem('eagle_selected_category', urlCategory);
+    } else if (location.state?.selectedCategory) {
       setSelectedCategory(location.state.selectedCategory);
+      sessionStorage.setItem('eagle_selected_category', location.state.selectedCategory);
+      setSearchParams({ category: location.state.selectedCategory }, { replace: true });
     }
-  }, [location.state]);
+  }, [searchParams, location.state]);
+
+  const handleCategoryChange = (catName) => {
+    setSelectedCategory(catName);
+    sessionStorage.setItem('eagle_selected_category', catName);
+    setSearchParams({ category: catName }, { replace: true });
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -53,15 +75,7 @@ export const SubCategories = () => {
   });
   const allCategoryNames = categoriesList.map(c => c.name);
 
-  // If we selected a category and it has no subcategories, we should probably just redirect to products page
-  useEffect(() => {
-    if (!loading && selectedCategory) {
-      const hasSubCats = subCategoriesList.some(sc => sc.category && sc.category.name === selectedCategory);
-      if (!hasSubCats) {
-        navigate('/products', { state: { selectedCategory } });
-      }
-    }
-  }, [loading, selectedCategory, subCategoriesList, navigate]);
+
 
   return (
     <div className="pt-24 min-h-screen bg-[var(--bg-primary)]">
@@ -106,7 +120,7 @@ export const SubCategories = () => {
             >
               <div className="flex flex-col bg-white rounded-2xl overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
                 <button 
-                  onClick={() => navigate('/products', { state: { selectedCategory: 'All Products' } })}
+                  onClick={() => navigate('/products')}
                   className={`text-left px-6 py-4 text-[15px] font-bold border-b border-gray-50 last:border-b-0 transition-all ${
                     !selectedCategory 
                       ? 'bg-[var(--brand-red)] text-white' 
@@ -118,7 +132,7 @@ export const SubCategories = () => {
                 {allCategoryNames.map((cat, idx) => (
                   <button 
                     key={idx}
-                    onClick={() => setSelectedCategory(cat)}
+                    onClick={() => handleCategoryChange(cat)}
                     className={`text-left px-6 py-4 text-[15px] font-bold border-b border-gray-50 last:border-b-0 transition-all ${
                       selectedCategory === cat 
                         ? 'bg-[var(--brand-red)] text-white' 
@@ -151,7 +165,7 @@ export const SubCategories = () => {
                   currentSubCategories.map((sub, idx) => (
                     <Link 
                       key={idx}
-                      to="/products"
+                      to={`/products?category=${encodeURIComponent(selectedCategory)}&subCategory=${encodeURIComponent(sub.name)}`}
                       state={{ selectedCategory, selectedSubCategory: sub.name }}
                       className="bg-white rounded-2xl border border-gray-100 overflow-hidden group shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] hover:-translate-y-2 transition-all duration-300 text-left w-full h-full flex flex-col items-center justify-center p-8"
                     >

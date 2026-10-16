@@ -1,35 +1,189 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Search, FolderTree, X, Layers, Filter } from 'lucide-react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { getProducts, getCategories, getSubCategories, getImageUrl } from '../api/api';
-import { resolveProductImage } from '../data/productDataHelper';
+import { getProducts, getCategories, getSubCategories, getImageUrl, getPreloadedProducts } from '../api/api';
+import { resolveProductImage, parseProductContent } from '../data/productDataHelper';
 import { initialProducts, initialCategories, initialSubCategories } from '../data/catalogSnapshot';
+
+// Helper to extract clean specifications/details for the sliding hover card
+const getProductCardDetails = (p) => {
+  const shortDesc = (p.shortDescription || '').trim();
+  
+  // 1. Check if shortDescription contains formatted specs (e.g. Screw Cap, UPVC Hardware, etc.)
+  if (shortDesc && (shortDesc.includes('\n') || shortDesc.includes(' - ') || shortDesc.includes('Colour') || shortDesc.includes('Specification') || shortDesc.includes('Packing'))) {
+    const rawLines = shortDesc.split('\n').map(l => l.trim()).filter(Boolean);
+    const items = [];
+    let pendingLabel = '';
+    rawLines.forEach(line => {
+      if (line.toLowerCase().startsWith('specification') && line.endsWith('-')) {
+        pendingLabel = line.replace(/-\s*$/, '').trim();
+        return;
+      }
+      if (line.includes(' - ')) {
+        const [label, ...valParts] = line.split(' - ');
+        items.push({ label: label.trim(), value: valParts.join(' - ').trim() });
+      } else if (line.includes(':')) {
+        const [label, ...valParts] = line.split(':');
+        items.push({ label: label.trim(), value: valParts.join(':').trim() });
+      } else if (/^[LWT]\s*=/i.test(line)) {
+        items.push({ label: pendingLabel || 'Dimension', value: line });
+        pendingLabel = '';
+      } else {
+        items.push({ label: pendingLabel || '', value: line });
+        pendingLabel = '';
+      }
+    });
+    if (items.length > 0) return items.slice(0, 4);
+  }
+
+  // 2. Check explicit specifications object
+  if (p.specifications) {
+    const validSpecs = Object.entries(p.specifications)
+      .filter(([_, val]) => typeof val === 'string' && val.trim().length > 0);
+    if (validSpecs.length > 0) {
+      return validSpecs.slice(0, 3).map(([key, val]) => ({
+        label: key.charAt(0).toUpperCase() + key.slice(1),
+        value: val
+      }));
+    }
+  }
+
+  // 3. Check parsed features from catalog
+  const parsed = parseProductContent(p);
+  if (parsed.features && parsed.features.length > 0) {
+    return parsed.features.slice(0, 2).map(f => ({
+      label: 'Feature',
+      value: f
+    }));
+  }
+
+  // 4. If short description paragraph exists
+  const catName = p.category?.name || (typeof p.category === 'string' ? p.category : '');
+  if (shortDesc) {
+    return [
+      { label: 'Category', value: catName || 'Industrial Fastener' },
+      { label: 'Overview', value: shortDesc.slice(0, 90) + (shortDesc.length > 90 ? '...' : '') }
+    ];
+  }
+
+  return [
+    { label: 'Category', value: catName || 'Industrial Hardware' },
+    { label: 'Quality', value: 'High Tensile & Durable' }
+  ];
+};
 
 export const Products = () => {
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const categoryScrollRef = useRef(null);
 
+  // Read initial states from URL params -> route state -> sessionStorage -> default
+  const paramCategory = searchParams.get('category');
+  const paramSubCategory = searchParams.get('subCategory');
+  const paramSearch = searchParams.get('search');
+
+  const initialCat = paramCategory || location.state?.selectedCategory || sessionStorage.getItem('eagle_selected_category') || 'All Products';
+  const initialSubCat = paramSubCategory || location.state?.selectedSubCategory || sessionStorage.getItem('eagle_selected_subcategory') || 'All';
+  const initialSearchVal = paramSearch || '';
+
   // Instant data initialization - zero blank screen wait
-  const [productsList, setProductsList] = useState(() => initialProducts);
+  const [productsList, setProductsList] = useState(() => getPreloadedProducts());
   const [categoriesList, setCategoriesList] = useState(() => initialCategories);
   const [subCategoriesList, setSubCategoriesList] = useState(() => initialSubCategories);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(initialSearchVal);
   
-  const [selectedCategory, setSelectedCategory] = useState(location.state?.selectedCategory || 'All Products');
-  const [selectedSubCategory, setSelectedSubCategory] = useState(location.state?.selectedSubCategory || 'All');
+  const [selectedCategory, setSelectedCategory] = useState(initialCat);
+  const [selectedSubCategory, setSelectedSubCategory] = useState(initialSubCat);
 
-  // Handle route state updates
+  // Synchronize state when URL searchParams or route state changes
   useEffect(() => {
-    if (location.state?.selectedCategory) {
-      setSelectedCategory(location.state.selectedCategory);
-    }
-    if (location.state?.selectedSubCategory) {
-      setSelectedSubCategory(location.state.selectedSubCategory);
+    const urlCat = searchParams.get('category');
+    const urlSub = searchParams.get('subCategory');
+    const urlSearch = searchParams.get('search');
+
+    if (urlCat) {
+      setSelectedCategory(urlCat);
+      sessionStorage.setItem('eagle_selected_category', urlCat);
     } else if (location.state?.selectedCategory) {
-      setSelectedSubCategory('All');
+      setSelectedCategory(location.state.selectedCategory);
+      sessionStorage.setItem('eagle_selected_category', location.state.selectedCategory);
     }
-  }, [location.state]);
+
+    if (urlSub) {
+      setSelectedSubCategory(urlSub);
+      sessionStorage.setItem('eagle_selected_subcategory', urlSub);
+    } else if (location.state?.selectedSubCategory) {
+      setSelectedSubCategory(location.state.selectedSubCategory);
+      sessionStorage.setItem('eagle_selected_subcategory', location.state.selectedSubCategory);
+    } else if (urlCat || location.state?.selectedCategory) {
+      setSelectedSubCategory('All');
+      sessionStorage.setItem('eagle_selected_subcategory', 'All');
+    }
+
+    if (urlSearch !== null && urlSearch !== undefined) {
+      setSearchQuery(urlSearch);
+    }
+  }, [searchParams, location.state]);
+
+  // Handlers with persistent URL sync
+  const handleCategorySelect = (cat) => {
+    setSelectedCategory(cat);
+    setSelectedSubCategory('All');
+    sessionStorage.setItem('eagle_selected_category', cat);
+    sessionStorage.setItem('eagle_selected_subcategory', 'All');
+
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      if (cat === 'All Products') {
+        next.delete('category');
+      } else {
+        next.set('category', cat);
+      }
+      next.delete('subCategory');
+      return next;
+    }, { replace: true });
+  };
+
+  const handleSubCategorySelect = (subName) => {
+    setSelectedSubCategory(subName);
+    sessionStorage.setItem('eagle_selected_subcategory', subName);
+
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      if (selectedCategory && selectedCategory !== 'All Products') {
+        next.set('category', selectedCategory);
+      }
+      if (subName === 'All') {
+        next.delete('subCategory');
+      } else {
+        next.set('subCategory', subName);
+      }
+      return next;
+    }, { replace: true });
+  };
+
+  const handleSearchChange = (query) => {
+    setSearchQuery(query);
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      if (query && query.trim()) {
+        next.set('search', query);
+      } else {
+        next.delete('search');
+      }
+      return next;
+    }, { replace: true });
+  };
+
+  const handleResetFilters = () => {
+    setSelectedCategory('All Products');
+    setSelectedSubCategory('All');
+    setSearchQuery('');
+    sessionStorage.setItem('eagle_selected_category', 'All Products');
+    sessionStorage.setItem('eagle_selected_subcategory', 'All');
+    setSearchParams({}, { replace: true });
+  };
 
   // Background revalidation (Stale-While-Revalidate)
   useEffect(() => {
@@ -37,9 +191,9 @@ export const Products = () => {
     const fetchLatestData = async () => {
       try {
         const [productsRes, categoriesRes, subCategoriesRes] = await Promise.allSettled([
-          getProducts(),
-          getCategories(),
-          getSubCategories()
+          getProducts(true),
+          getCategories(true),
+          getSubCategories(true)
         ]);
 
         if (isMounted) {
@@ -59,20 +213,35 @@ export const Products = () => {
     };
 
     fetchLatestData();
-    return () => { isMounted = false; };
+
+    const handleProductsUpdated = (e) => {
+      if (isMounted && Array.isArray(e.detail) && e.detail.length > 0) {
+        setProductsList(e.detail);
+      }
+    };
+    const handleCategoriesUpdated = (e) => {
+      if (isMounted && Array.isArray(e.detail) && e.detail.length > 0) {
+        setCategoriesList(e.detail);
+      }
+    };
+    const handleSubCategoriesUpdated = (e) => {
+      if (isMounted && Array.isArray(e.detail) && e.detail.length > 0) {
+        setSubCategoriesList(e.detail);
+      }
+    };
+
+    window.addEventListener('eagle_products_updated', handleProductsUpdated);
+    window.addEventListener('eagle_categories_updated', handleCategoriesUpdated);
+    window.addEventListener('eagle_subcategories_updated', handleSubCategoriesUpdated);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener('eagle_products_updated', handleProductsUpdated);
+      window.removeEventListener('eagle_categories_updated', handleCategoriesUpdated);
+      window.removeEventListener('eagle_subcategories_updated', handleSubCategoriesUpdated);
+    };
   }, []);
 
-  // Category counts computation for rich sidebar and mobile pill badges
-  const categoryCounts = useMemo(() => {
-    const counts = { 'All Products': productsList.length };
-    productsList.forEach(p => {
-      const cName = (p.category?.name || (typeof p.category === 'string' ? p.category : '')).trim();
-      if (cName) {
-        counts[cName] = (counts[cName] || 0) + 1;
-      }
-    });
-    return counts;
-  }, [productsList]);
 
   // Build clean list of unique categories
   const allCategoryNames = useMemo(() => {
@@ -197,13 +366,13 @@ export const Products = () => {
                 <input 
                   type="text" 
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => handleSearchChange(e.target.value)}
                   placeholder="Search products..." 
                   className="flex-grow px-3.5 py-2.5 sm:py-3 border-none focus:outline-none bg-white text-sm text-gray-800"
                 />
                 {searchQuery && (
                   <button 
-                    onClick={() => setSearchQuery('')}
+                    onClick={() => handleSearchChange('')}
                     className="px-2.5 text-gray-400 hover:text-gray-600 transition-colors flex items-center justify-center"
                     title="Clear search"
                   >
@@ -223,29 +392,18 @@ export const Products = () => {
           {/* Mobile Horizontal Scrolling Categories Bar (Visible only on < lg) */}
           <div className="lg:hidden mb-6 -mx-3 px-3 overflow-x-auto flex items-center gap-2 py-1 scroll-smooth [&::-webkit-scrollbar]:hidden">
             {allCategoryNames.map((cat, idx) => {
-              const count = categoryCounts[cat] || (cat === 'All Products' ? productsList.length : 0);
               const isSelected = selectedCategory === cat;
               return (
                 <button 
                   key={idx}
-                  onClick={() => {
-                    setSelectedCategory(cat);
-                    setSelectedSubCategory('All');
-                  }}
-                  className={`whitespace-nowrap px-3.5 py-2 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 shadow-sm ${
+                  onClick={() => handleCategorySelect(cat)}
+                  className={`whitespace-nowrap px-4 py-2 rounded-full text-xs font-bold transition-all shrink-0 shadow-sm ${
                     isSelected 
                       ? 'bg-[var(--brand-red)] text-white shadow-red-200 ring-2 ring-red-200/50' 
                       : 'bg-white text-gray-700 border border-gray-200/80 hover:bg-gray-50 active:bg-gray-100'
                   }`}
                 >
-                  <span>{cat}</span>
-                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                    isSelected 
-                      ? 'bg-white/20 text-white' 
-                      : 'bg-gray-100 text-gray-500'
-                  }`}>
-                    {count}
-                  </span>
+                  {cat}
                 </button>
               );
             })}
@@ -264,13 +422,12 @@ export const Products = () => {
                 <div className="px-5 py-4 bg-gray-50/80 border-b border-gray-100">
                   <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
                     <Layers className="w-4 h-4 text-[var(--brand-red)]" />
-                    Categories ({allCategoryNames.length - 1})
+                    Categories
                   </h4>
                 </div>
                 
                 <div className="flex flex-col max-h-[70vh] overflow-y-auto [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-thumb]:rounded-full">
                   {allCategoryNames.map((cat, idx) => {
-                    const count = categoryCounts[cat] || (cat === 'All Products' ? productsList.length : 0);
                     const isSelected = selectedCategory === cat;
                     return (
                       <button 
@@ -279,20 +436,13 @@ export const Products = () => {
                           setSelectedCategory(cat);
                           setSelectedSubCategory('All');
                         }}
-                        className={`text-left px-5 py-3.5 text-[14px] font-semibold border-b border-gray-50 last:border-b-0 transition-all flex items-center justify-between group ${
+                        className={`text-left px-5 py-3.5 text-[14px] font-semibold border-b border-gray-50 last:border-b-0 transition-all flex items-center group ${
                           isSelected 
                             ? 'bg-[var(--brand-red)] text-white shadow-sm font-bold' 
                             : 'bg-white text-gray-700 hover:bg-gray-50 hover:text-[#0b2545] hover:pl-6'
                         }`}
                       >
-                        <span className="truncate pr-2">{cat}</span>
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-bold shrink-0 transition-colors ${
-                          isSelected 
-                            ? 'bg-white/20 text-white' 
-                            : 'bg-gray-100 text-gray-500 group-hover:bg-red-50 group-hover:text-[var(--brand-red)]'
-                        }`}>
-                          {count}
-                        </span>
+                        <span className="truncate">{cat}</span>
                       </button>
                     );
                   })}
@@ -312,38 +462,29 @@ export const Products = () => {
                   </div>
                   <div className="flex gap-2 overflow-x-auto pb-1 sm:pb-0 sm:flex-wrap [&::-webkit-scrollbar]:hidden">
                     <button
-                      onClick={() => setSelectedSubCategory('All')}
-                      className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg sm:rounded-xl text-xs font-bold transition-all shrink-0 ${
+                      onClick={() => handleSubCategorySelect('All')}
+                      className={`px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-lg sm:rounded-xl text-xs font-bold transition-all shrink-0 ${
                         selectedSubCategory === 'All'
                           ? 'bg-[#0b2545] text-white shadow-sm'
                           : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                       }`}
                     >
-                      All in {selectedCategory} ({filteredProducts.length})
+                      All in {selectedCategory}
                     </button>
                     {currentSubCategories.map((sub, idx) => {
                       const isSubSelected = selectedSubCategory.toLowerCase() === sub.name.toLowerCase();
-                      const subCount = productsList.filter(p => {
-                        const pSub = (p.subCategory?.name || (typeof p.subCategory === 'string' ? p.subCategory : '')).trim().toLowerCase();
-                        return pSub === sub.name.trim().toLowerCase();
-                      }).length;
 
                       return (
                         <button
                           key={idx}
-                          onClick={() => setSelectedSubCategory(sub.name)}
-                          className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg sm:rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 ${
+                          onClick={() => handleSubCategorySelect(sub.name)}
+                          className={`px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-lg sm:rounded-xl text-xs font-bold transition-all flex items-center shrink-0 ${
                             isSubSelected
                               ? 'bg-[var(--brand-red)] text-white shadow-sm'
                               : 'bg-gray-100 text-gray-700 hover:bg-red-50 hover:text-[var(--brand-red)]'
                           }`}
                         >
                           <span>{sub.name}</span>
-                          <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
-                            isSubSelected ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-600'
-                          }`}>
-                            {subCount}
-                          </span>
                         </button>
                       );
                     })}
@@ -388,11 +529,7 @@ export const Products = () => {
                     }
                   </p>
                   <button
-                    onClick={() => {
-                      setSelectedCategory('All Products');
-                      setSelectedSubCategory('All');
-                      setSearchQuery('');
-                    }}
+                    onClick={handleResetFilters}
                     className="px-5 py-2.5 bg-[#0b2545] text-white rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-[var(--brand-red)] transition-colors active:scale-95"
                   >
                     View All Products
@@ -403,44 +540,58 @@ export const Products = () => {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.3 }}
-                  className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-3 gap-3 sm:gap-5 lg:gap-6"
+                  className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-3 gap-5 sm:gap-6 lg:gap-7"
                 >
                   {filteredProducts.map((p, idx) => {
                     const prodImg = resolveProductImage(p);
-                    const catName = p.category?.name || (typeof p.category === 'string' ? p.category : '');
+                    const details = getProductCardDetails(p);
                     
                     return (
                       <Link 
                         key={p._id || idx} 
                         to={`/products/${p._id}`}
-                        className="bg-white rounded-xl sm:rounded-2xl border border-gray-100 p-3 sm:p-5 lg:p-6 flex flex-col items-center text-center group shadow-[0_3px_15px_rgb(0,0,0,0.03)] hover:shadow-[0_16px_36px_rgba(229,53,36,0.12)] hover:border-red-100 hover:-translate-y-1 active:scale-[0.98] transition-all duration-200 block relative"
+                        state={{ fromCategory: selectedCategory, fromSubCategory: selectedSubCategory }}
+                        className="product-card-container group bg-white border border-gray-200/90 rounded-xl flex flex-col h-[380px] sm:h-[400px] shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_16px_36px_rgba(0,136,204,0.12)] hover:border-[#0088cc]/40 block"
                       >
-                        {/* Hover search indicator */}
-                        <div className="absolute top-2.5 right-2.5 sm:top-3.5 sm:right-3.5 bg-white/90 backdrop-blur rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow-sm text-[#e53524]">
-                          <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                        </div>
-                        
-                        {/* Circular Image Container with responsive sizing */}
-                        <div className="w-24 h-24 sm:w-36 sm:h-36 md:w-40 md:h-40 flex items-center justify-center mb-2.5 sm:mb-4 transition-transform duration-300 group-hover:scale-105">
+                        {/* Upper Big Image Section */}
+                        <div className="w-full h-[280px] sm:h-[300px] flex items-center justify-center p-6 sm:p-8 bg-white overflow-hidden">
                           <img 
                             src={prodImg} 
                             alt={p.name}
                             loading="lazy"
-                            className="max-h-20 max-w-20 sm:max-h-32 sm:max-w-32 md:max-h-36 md:max-w-36 object-contain"
+                            className="product-card-img max-h-full max-w-full object-contain"
                           />
                         </div>
 
-                        {/* Title - responsive typography */}
-                        <h3 className="text-xs sm:text-sm md:text-[15px] font-bold text-[#0b2545] group-hover:text-[#e53524] transition-colors tracking-wide mb-1 sm:mb-1.5 line-clamp-2 leading-tight sm:leading-snug">
-                          {p.name}
-                        </h3>
-                        
-                        {/* Category badge */}
-                        {catName && (
-                          <span className="text-[9px] sm:text-[11px] font-semibold text-gray-500 bg-gray-50 border border-gray-100 px-2 py-0.5 rounded-full uppercase tracking-wider mt-auto truncate max-w-full">
-                            {catName}
-                          </span>
-                        )}
+                        {/* Sliding Content Drawer with Blue Accent Line on Top */}
+                        <div className="product-card-drawer bg-white shadow-[0_-4px_16px_rgba(0,0,0,0.05)] flex flex-col">
+                          {/* Vibrant Blue Accent Line */}
+                          <div className="w-full h-[3px] bg-[#0088cc] shrink-0" />
+
+                          {/* Title Area (always visible in idle state, ~57px tall) */}
+                          <div className="px-5 py-3.5 min-h-[57px] flex items-center bg-white shrink-0">
+                            <h3 className="text-sm sm:text-[15px] font-bold text-[#0b2545] tracking-wide uppercase line-clamp-1 group-hover:text-[#0088cc] transition-colors">
+                              {p.name}
+                            </h3>
+                          </div>
+
+                          {/* Hover Details Panel (reveals smoothly when sliding up) */}
+                          <div className="px-5 pb-5 pt-1 text-[12px] sm:text-[12.5px] text-gray-600 flex flex-col gap-1.5 bg-white border-t border-gray-100">
+                            {details.map((item, i) => (
+                              <div key={i} className="leading-snug">
+                                {item.label ? (
+                                  <span>
+                                    <strong className="text-gray-800 font-semibold">{item.label}</strong>
+                                    <span className="text-gray-400 mx-1.5">-</span>
+                                    <span className="text-gray-600">{item.value}</span>
+                                  </span>
+                                ) : (
+                                  <span className="text-gray-600 line-clamp-2">{item.value}</span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
                       </Link>
                     );
                   })}

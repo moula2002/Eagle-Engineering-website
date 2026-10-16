@@ -10,6 +10,7 @@ import cuttingWheelImg from '../assets/cutting_wheel.png';
 import grindingWheelImg from '../assets/grinding_wheel.png';
 import fastener1 from '../assets/fastener_1.png';
 import { initialProducts } from './catalogSnapshot';
+import { productSuffixToImage } from '../api/api';
 
 export const knownProductCatalog = {
   csk: {
@@ -164,56 +165,70 @@ export const knownProductCatalog = {
 };
 
 export const getKnownProductInfo = (name = '') => {
-  const n = name.toLowerCase();
-  if (n.includes('csk')) return knownProductCatalog.csk;
-  if (n.includes('pan')) return knownProductCatalog.pan;
-  if (n.includes('truss') || n.includes('button')) return knownProductCatalog.truss;
-  if (n.includes('frame')) return knownProductCatalog.frame;
-  if (n.includes('wedge')) return knownProductCatalog.wedge;
-  if (n.includes('chipboard')) return knownProductCatalog.chipboard;
-  if (n.includes('drywall')) return knownProductCatalog.drywall;
-  if (n.includes('zinc')) return knownProductCatalog.zinc;
-  if (n.includes('cutting')) return knownProductCatalog.cutting;
-  if (n.includes('grinding')) return knownProductCatalog.grinding;
+  const n = name.toLowerCase().trim();
+  if (n.includes('csk head') || n === 'csk') return knownProductCatalog.csk;
+  if (n.includes('pan head') || n === 'pan') return knownProductCatalog.pan;
+  if (n.includes('truss') || n.includes('button head')) return knownProductCatalog.truss;
+  if (n.includes('frame fixing screw') || n.includes('frame fixing')) return knownProductCatalog.frame;
+  if (n.includes('wedge anchor')) return knownProductCatalog.wedge;
+  if (n.includes('chipboard screw') || n.includes('chipboard')) return knownProductCatalog.chipboard;
+  if (n.includes('drywall screw') || n.includes('drywall')) return knownProductCatalog.drywall;
+  if (n.includes('zinc fastener') || n.includes('roofing screw')) return knownProductCatalog.zinc;
+  if (n.includes('cutting wheel')) return knownProductCatalog.cutting;
+  if (n.includes('grinding wheel')) return knownProductCatalog.grinding;
   return null;
 };
 
 export const resolveProductImage = (product) => {
-  if (!product) return fastener1;
-  const known = getKnownProductInfo(product.name);
+  if (!product) return '';
 
-  // High-res authentic image for known catalog products
-  if (known && known.image) {
-    return known.image;
+  // 1. Direct dynamic mainImage from product (exact match with admin panel)
+  const rawImage = product.mainImage || product.image || product.imageUrl || (Array.isArray(product.gallery) && product.gallery[0]);
+
+  if (rawImage && typeof rawImage === 'string' && rawImage.trim()) {
+    const trimmed = rawImage.trim();
+
+    // Backend uploads from admin panel (/uploads/...)
+    if (trimmed.startsWith('/uploads')) {
+      const baseUrl = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : 'https://eagle-engineering-server.onrender.com';
+      return `${baseUrl}${trimmed}`;
+    }
+
+    // Direct dynamic base64 image, external URL, or static path
+    if (trimmed.startsWith('data:') || trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('/products/')) {
+      return trimmed;
+    }
+
+    return trimmed;
   }
-  
-  // Custom upload or static product image
-  if (product.mainImage) {
-    if (product.mainImage.startsWith('/uploads')) {
-      return `https://eagle-engineering-server.onrender.com${product.mainImage}`;
+
+  // 2. Only if product has no image at all, check suffix map fallback
+  if (product._id) {
+    const suffix = String(product._id).slice(-6).toLowerCase();
+    if (productSuffixToImage[suffix]) {
+      return productSuffixToImage[suffix];
     }
-    if (product.mainImage.startsWith('http') || product.mainImage.startsWith('/products/')) {
-      return product.mainImage;
-    }
-    if (product.mainImage.startsWith('data:image')) {
-      // Find clean static path from initialProducts
-      const match = initialProducts.find(p => p._id === product._id || (p.name && product.name && p.name.toLowerCase().trim() === product.name.toLowerCase().trim()));
-      if (match && match.mainImage && match.mainImage.startsWith('/products/')) {
-        return match.mainImage;
+  }
+
+  // 3. Fallback from initialProducts snapshot by ID or SKU if available
+  const match = initialProducts.find(p =>
+    (product._id && p._id === product._id) ||
+    (product.sku && p.sku === product.sku)
+  );
+
+  if (match) {
+    const matchImg = match.mainImage || match.image || match.imageUrl;
+    if (matchImg && typeof matchImg === 'string' && matchImg.trim()) {
+      const trimmed = matchImg.trim();
+      if (trimmed.startsWith('/uploads')) {
+        const baseUrl = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : 'https://eagle-engineering-server.onrender.com';
+        return `${baseUrl}${trimmed}`;
       }
-      if (product.mainImage.length > 500) {
-        return product.mainImage;
-      }
+      return trimmed;
     }
   }
 
-  // Check initialProducts for static fallback
-  const fallbackMatch = initialProducts.find(p => p._id === product._id || (p.name && product.name && p.name.toLowerCase().trim() === product.name.toLowerCase().trim()));
-  if (fallbackMatch && fallbackMatch.mainImage && fallbackMatch.mainImage.startsWith('/products/')) {
-    return fallbackMatch.mainImage;
-  }
-
-  return fastener1;
+  return '';
 };
 
 export const parseProductContent = (product) => {
@@ -301,7 +316,24 @@ export const getFallbackProduct = (idOrSlug = '') => {
   if (!idOrSlug) return null;
   const s = String(idOrSlug).toLowerCase().trim();
 
-  // 1. Direct match by ID or SKU in initialProducts
+  // 1. Direct match in dynamic localStorage cache first
+  try {
+    const cached = localStorage.getItem('eagle_cached_products');
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (Array.isArray(parsed)) {
+        const cachedMatch = parsed.find(p => p._id === idOrSlug || p.sku === idOrSlug);
+        if (cachedMatch) {
+          return {
+            ...cachedMatch,
+            mainImage: resolveProductImage(cachedMatch)
+          };
+        }
+      }
+    }
+  } catch (e) {}
+
+  // 2. Direct match by ID or SKU in initialProducts
   const exactMatch = initialProducts.find(p => p._id === idOrSlug || p.sku === idOrSlug);
   if (exactMatch) {
     return {
@@ -310,7 +342,7 @@ export const getFallbackProduct = (idOrSlug = '') => {
     };
   }
 
-  // 2. Known MongoDB IDs and slugs
+  // 3. Known MongoDB IDs and slugs
   if (s === '6ac794d75e1e58a06dec9d97' || s.includes('csk')) {
     return {
       _id: '6ac794d75e1e58a06dec9d97',
@@ -333,9 +365,23 @@ export const getFallbackProduct = (idOrSlug = '') => {
       category: { name: 'Pan Head Screws' }
     };
   }
+  // 2. Name match in initialProducts
+  const nameMatch = initialProducts.find(p => 
+    p.name.toLowerCase().trim() === s || 
+    p.name.toLowerCase().replace(/[^a-z0-9]/g, '-') === s ||
+    p.name.toLowerCase().includes(s)
+  );
+  if (nameMatch) {
+    return {
+      ...nameMatch,
+      mainImage: resolveProductImage(nameMatch)
+    };
+  }
+
+  // 3. Known product catalog fallback by exact key or full title
   for (const key of Object.keys(knownProductCatalog)) {
-    if (s.includes(key)) {
-      const item = knownProductCatalog[key];
+    const item = knownProductCatalog[key];
+    if (s === key || s === item.title.toLowerCase() || (s.length > 8 && s.includes(item.title.toLowerCase()))) {
       return {
         _id: idOrSlug,
         name: item.title,
@@ -346,15 +392,6 @@ export const getFallbackProduct = (idOrSlug = '') => {
         category: { name: 'Fasteners' }
       };
     }
-  }
-
-  // 3. Name substring match in initialProducts
-  const nameMatch = initialProducts.find(p => p.name.toLowerCase().includes(s));
-  if (nameMatch) {
-    return {
-      ...nameMatch,
-      mainImage: resolveProductImage(nameMatch)
-    };
   }
 
   return null;

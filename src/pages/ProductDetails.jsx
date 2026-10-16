@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, ArrowRight, Download } from 'lucide-react';
 import { Link, useParams, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { getProducts, getProductById, getImageUrl } from '../api/api';
+import { getProducts, getProductById, getImageUrl, getPreloadedProducts } from '../api/api';
 import { resolveProductImage, parseProductContent, getFallbackProduct } from '../data/productDataHelper';
 import { initialProducts } from '../data/catalogSnapshot';
 
@@ -11,23 +11,61 @@ export const ProductDetails = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const fromHome = location.state?.fromHome || false;
+  const returnCategory = location.state?.fromCategory || sessionStorage.getItem('eagle_selected_category');
+  const returnSubCategory = location.state?.fromSubCategory || sessionStorage.getItem('eagle_selected_subcategory');
 
-  // Immediate lookup from snapshot
-  const initialMatch = initialProducts.find(p => p._id === id || p.sku === id) || getFallbackProduct(id);
+  const productsLink = React.useMemo(() => {
+    if (returnCategory && returnCategory !== 'All Products') {
+      if (returnSubCategory && returnSubCategory !== 'All') {
+        return `/products?category=${encodeURIComponent(returnCategory)}&subCategory=${encodeURIComponent(returnSubCategory)}`;
+      }
+      return `/products?category=${encodeURIComponent(returnCategory)}`;
+    }
+    return '/products';
+  }, [returnCategory, returnSubCategory]);
+
+  // Lookup from preloaded dynamic cache first, then fallback to catalog
+  const getImmediateProduct = (targetId) => {
+    const preloaded = getPreloadedProducts();
+    const match = preloaded.find(p => p._id === targetId || p.sku === targetId);
+    if (match) return match;
+    return initialProducts.find(p => p._id === targetId || p.sku === targetId) || getFallbackProduct(targetId);
+  };
+
+  const initialMatch = getImmediateProduct(id);
   const [product, setProduct] = useState(initialMatch || null);
   const [relatedProducts, setRelatedProducts] = useState(() => {
-    return initialProducts.filter(p => p._id !== id).slice(0, 4);
+    const preloaded = getPreloadedProducts();
+    return preloaded.filter(p => p._id !== id).slice(0, 4);
   });
   const [loading, setLoading] = useState(!initialMatch);
   const [mainImg, setMainImg] = useState(initialMatch ? resolveProductImage(initialMatch) : '');
 
   useEffect(() => {
     let isMounted = true;
+
+    // Immediately synchronize to dynamic cache on id change for instantaneous transition
+    const immediateMatch = getImmediateProduct(id);
+    if (immediateMatch) {
+      setProduct(immediateMatch);
+      setMainImg(resolveProductImage(immediateMatch));
+      const curCat = immediateMatch.category?.name || immediateMatch.category;
+      const preloaded = getPreloadedProducts();
+      let rel = preloaded.filter(p => p._id !== id);
+      if (curCat) {
+        const sameCat = rel.filter(p => (p.category?.name || p.category) === curCat);
+        if (sameCat.length > 0) rel = sameCat;
+      }
+      setRelatedProducts(rel.slice(0, 4));
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+
     const fetchData = async () => {
       try {
-        if (!product) setLoading(true);
         // Fetch current product
-        const json = await getProductById(id);
+        const json = await getProductById(id, true);
         if (isMounted) {
           if (json.success && json.data) {
             setProduct(json.data);
@@ -43,7 +81,7 @@ export const ProductDetails = () => {
         }
 
         // Fetch related products
-        const allProductsJson = await getProducts();
+        const allProductsJson = await getProducts(true);
         if (isMounted && allProductsJson.success && allProductsJson.data) {
           const currentCat = json.data?.category?.name || product?.category?.name;
           let related = allProductsJson.data.filter(p => p._id !== id);
@@ -69,7 +107,32 @@ export const ProductDetails = () => {
     if (id) {
       fetchData();
     }
-    return () => { isMounted = false; };
+
+    const handleProductDetailsUpdated = (e) => {
+      if (isMounted && e.detail && (e.detail._id === id || e.detail.sku === id)) {
+        setProduct(e.detail);
+        setMainImg(resolveProductImage(e.detail));
+      }
+    };
+
+    const handleAllProductsUpdated = (e) => {
+      if (isMounted && Array.isArray(e.detail)) {
+        const found = e.detail.find(p => p._id === id || p.sku === id);
+        if (found) {
+          setProduct(found);
+          setMainImg(resolveProductImage(found));
+        }
+      }
+    };
+
+    window.addEventListener('eagle_product_details_updated', handleProductDetailsUpdated);
+    window.addEventListener('eagle_products_updated', handleAllProductsUpdated);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener('eagle_product_details_updated', handleProductDetailsUpdated);
+      window.removeEventListener('eagle_products_updated', handleAllProductsUpdated);
+    };
   }, [id]);
 
   if (loading) {
@@ -123,7 +186,7 @@ export const ProductDetails = () => {
               if (fromHome) {
                 navigate('/');
               } else {
-                navigate('/products');
+                navigate(productsLink);
               }
             }}
             className="inline-flex items-center text-xs sm:text-sm font-bold text-gray-500 hover:text-[#e53524] transition-colors bg-transparent border-none cursor-pointer p-0"
@@ -135,7 +198,7 @@ export const ProductDetails = () => {
           <div className="text-[11px] sm:text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5 sm:gap-2">
             <Link to="/" className="hover:text-gray-600 transition-colors">Home</Link>
             <span>/</span>
-            <Link to="/products" className="hover:text-gray-600 transition-colors">Products</Link>
+            <Link to={productsLink} className="hover:text-gray-600 transition-colors">Products</Link>
             <span>/</span>
             <span className="text-[#e53524] truncate max-w-[140px] sm:max-w-xs">{product.name}</span>
           </div>
