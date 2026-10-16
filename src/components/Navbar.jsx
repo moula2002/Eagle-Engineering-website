@@ -160,8 +160,8 @@ export const Navbar = () => {
     { path: '/', label: 'Home' },
     { path: '/about', label: 'About' },
     { path: '/products', label: 'Products' },
-    { path: '/quality', label: 'Industries' },
-    { path: '/download', label: 'Resources' },
+    { path: '/quality', label: 'Quality' },
+    { path: '/download', label: 'Download' },
     { path: '/contact', label: 'Contact' },
   ];
 
@@ -350,20 +350,10 @@ export const Navbar = () => {
               >
                 <div className="flex flex-col py-3 px-3.5 sm:px-4 space-y-2 max-h-[calc(100vh-120px)] overflow-y-auto">
                   
-                  {/* Top Drawer Header with Dedicated Cancel Button */}
-                  <div className="flex items-center justify-between pb-3 mb-1 border-b border-white/15 px-1">
-                    <div className="flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 rounded-full bg-[var(--brand-red)] animate-pulse" />
-                      <span className="text-xs font-bold uppercase tracking-wider text-white">Menu Navigation</span>
-                    </div>
-                    <button
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--brand-red)] text-white text-xs font-extrabold uppercase tracking-wide hover:bg-red-700 active:scale-95 transition-all shadow-md ring-2 ring-white/20"
-                      aria-label="Cancel / Close menu"
-                    >
-                      <X className="w-3.5 h-3.5 stroke-[3]" />
-                      <span>Cancel</span>
-                    </button>
+                  {/* Top Drawer Header */}
+                  <div className="flex items-center gap-2 pb-2.5 mb-1 border-b border-white/10 px-1">
+                    <span className="w-2 h-2 rounded-full bg-[var(--brand-red)] animate-pulse" />
+                    <span className="text-xs font-bold uppercase tracking-wider text-white/80">Menu Navigation</span>
                   </div>
 
                 {navLinks.map((link) => {
@@ -429,7 +419,7 @@ export const Navbar = () => {
                   );
                 })}
 
-                <div className="pt-2 pb-1 flex flex-col gap-2">
+                <div className="pt-2 pb-1">
                   <Link
                     to="/contact"
                     onClick={() => setMobileMenuOpen(false)}
@@ -437,16 +427,6 @@ export const Navbar = () => {
                   >
                     GET QUOTE
                   </Link>
-
-                  {/* Bottom Explicit Cancel Button */}
-                  <button
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="w-full py-3 rounded-xl bg-red-600/20 hover:bg-red-600/30 text-white text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all border border-red-500/30 active:scale-[0.98]"
-                    aria-label="Cancel and close menu"
-                  >
-                    <X className="w-4 h-4 text-red-400 stroke-[3]" />
-                    <span>Cancel & Close Menu</span>
-                  </button>
                 </div>
               </div>
             </motion.div>

@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
-import { Phone, Mail, MapPin } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Phone, Mail, MapPin, Printer, Building2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useLocation } from 'react-router-dom';
-import { createInquiry } from '../api/api';
+import { createInquiry, getSettings, defaultContactSettings } from '../api/api';
+import { ProductImage } from '../components/ProductImage';
 
 export const Contact = () => {
   const location = useLocation();
+  const [contactInfo, setContactInfo] = useState(defaultContactSettings);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -15,6 +17,18 @@ export const Contact = () => {
     productImage: location.state?.productImage || ''
   });
   const [status, setStatus] = useState({ loading: false, success: false, error: null });
+
+  useEffect(() => {
+    let isMounted = true;
+    getSettings().then((res) => {
+      if (isMounted && res && res.data) {
+        setContactInfo(res.data);
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -66,39 +80,56 @@ export const Contact = () => {
               We are here to help. Reach out to us for any inquiries, quotations or support.
             </p>
             
-            <div className="space-y-10">
+            <div className="space-y-8 sm:space-y-10">
+              {/* 1. Mobile / Phone Number */}
               <div className="flex items-start group">
                 <div className="flex-shrink-0 w-14 h-14 bg-white border border-gray-100 flex items-center justify-center rounded-2xl shadow-sm group-hover:bg-[var(--brand-red)] group-hover:text-white transition-colors duration-300">
                   <Phone className="w-6 h-6 text-[var(--brand-red)] group-hover:text-white transition-colors" />
                 </div>
                 <div className="ml-6 flex flex-col items-start">
-                  <h4 className="text-[16px] font-bold text-[#0b2545] mb-1">Phone</h4>
-                  <a href="tel:+918079667629" className="text-[15px] text-gray-500 font-light hover:text-[var(--brand-red)] transition-colors inline-block">+91 80-7966 7629 (Fax)</a>
-                  <a href="tel:+919632144367" className="text-[15px] text-gray-500 font-light hover:text-[var(--brand-red)] transition-colors inline-block">+91 96321 44367</a>
+                  <h4 className="text-[16px] font-bold text-[#0b2545] mb-1">Phone Number</h4>
+                  <a href={`tel:${(contactInfo.phone || '+91 96321 44367').replace(/[^0-9+]/g, '')}`} className="text-[15px] text-gray-500 font-light hover:text-[var(--brand-red)] transition-colors inline-block">
+                    {contactInfo.phone || '+91 96321 44367'}
+                  </a>
                 </div>
               </div>
 
+              {/* 2. Landline / Office Number */}
+              <div className="flex items-start group">
+                <div className="flex-shrink-0 w-14 h-14 bg-white border border-gray-100 flex items-center justify-center rounded-2xl shadow-sm group-hover:bg-[var(--brand-red)] group-hover:text-white transition-colors duration-300">
+                  <Printer className="w-6 h-6 text-[var(--brand-red)] group-hover:text-white transition-colors" />
+                </div>
+                <div className="ml-6 flex flex-col items-start">
+                  <h4 className="text-[16px] font-bold text-[#0b2545] mb-1">Landline / Office Number</h4>
+                  <a href={`tel:${(contactInfo.officePhone || contactInfo.fax || '+91 80-7966 7629').replace(/[^0-9+]/g, '')}`} className="text-[15px] text-gray-500 font-light hover:text-[var(--brand-red)] transition-colors inline-block">
+                    {contactInfo.officePhone || contactInfo.fax || '+91 80-7966 7629'}
+                  </a>
+                </div>
+              </div>
+
+              {/* 3. Email Address */}
               <div className="flex items-start group">
                 <div className="flex-shrink-0 w-14 h-14 bg-white border border-gray-100 flex items-center justify-center rounded-2xl shadow-sm group-hover:bg-[var(--brand-red)] group-hover:text-white transition-colors duration-300">
                   <Mail className="w-6 h-6 text-[var(--brand-red)] group-hover:text-white transition-colors" />
                 </div>
                 <div className="ml-6 flex flex-col items-start">
-                  <h4 className="text-[16px] font-bold text-[#0b2545] mb-1">Email</h4>
-                  <a href="mailto:info@eagleeng.in" className="text-[15px] text-gray-500 font-light hover:text-[var(--brand-red)] transition-colors inline-block">info@eagleeng.in</a>
+                  <h4 className="text-[16px] font-bold text-[#0b2545] mb-1">Email Address</h4>
+                  <a href={`mailto:${contactInfo.email || 'info@eagleeng.in'}`} className="text-[15px] text-gray-500 font-light hover:text-[var(--brand-red)] transition-colors inline-block">
+                    {contactInfo.email || 'info@eagleeng.in'}
+                  </a>
                 </div>
               </div>
 
+              {/* 5. Address */}
               <div className="flex items-start group">
                 <div className="flex-shrink-0 w-14 h-14 bg-white border border-gray-100 flex items-center justify-center rounded-2xl shadow-sm group-hover:bg-[var(--brand-red)] group-hover:text-white transition-colors duration-300">
                   <MapPin className="w-6 h-6 text-[var(--brand-red)] group-hover:text-white transition-colors" />
                 </div>
                 <div className="ml-6">
                   <h4 className="text-[16px] font-bold text-[#0b2545] mb-1">Address</h4>
-                  <p className="text-[15px] text-gray-500 font-light leading-relaxed">
-                    <strong>EAGLE ENGINEERING</strong><br />
-                    No. 22, First Floor, Kothnoor Dinne,<br />
-                    JP Nagar 8th Phase, Kalena Agrahara, Kothnur,<br />
-                    Bengaluru, Karnataka - 560076
+                  <p className="text-[15px] text-gray-500 font-light leading-relaxed whitespace-pre-line">
+                    <strong>{contactInfo.companyName || 'EAGLE ENGINEERING'}</strong><br />
+                    {contactInfo.address || 'No. 22, First Floor, Kothnoor Dinne,\nJP Nagar 8th Phase, Kalena Agrahara, Kothnur,\nBengaluru, Karnataka - 560078'}
                   </p>
                 </div>
               </div>
@@ -190,8 +221,14 @@ export const Contact = () => {
               </div>
               <div className="relative flex items-center">
                 {formData.productImage && (
-                  <div className="absolute left-3 w-10 h-10 bg-white rounded-lg p-1 border border-gray-100 flex items-center justify-center pointer-events-none">
-                    <img src={formData.productImage} alt="Product" className="max-w-full max-h-full object-contain" />
+                  <div className="absolute left-3 flex items-center justify-center pointer-events-none z-10">
+                    <ProductImage 
+                      src={formData.productImage} 
+                      alt="Product Preview" 
+                      size="custom" 
+                      className="w-10 h-10 shadow-none border-red-500/80" 
+                      hoverZoom={false}
+                    />
                   </div>
                 )}
                 <input 

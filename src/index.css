@@ -217,3 +217,23 @@ body {
   transform: scale(1.05);
 }
 
+/* Reusable Circular Product Image Brand Styling */
+.product-circle-frame {
+  border-radius: 9999px;
+  background-color: #ffffff;
+  border: 1px solid var(--brand-red, #e62020);
+  box-shadow: 0 4px 16px rgba(230, 32, 32, 0.12), 0 2px 6px rgba(0, 0, 0, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  position: relative;
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.product-circle-frame:hover,
+.group:hover .product-circle-frame {
+  box-shadow: 0 8px 24px rgba(230, 32, 32, 0.22), 0 4px 10px rgba(0, 0, 0, 0.08);
+}
+

@@ -1,5 +1,5 @@
 import React, { Suspense, lazy } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { SmartAssistant } from './components/SmartAssistant';
@@ -38,7 +38,9 @@ function App() {
               <Route path="/subcategories" element={<SubCategories />} />
               <Route path="/products/:id" element={<ProductDetails />} />
               <Route path="/download" element={<Download />} />
+              <Route path="/resources" element={<Navigate to="/download" replace />} />
               <Route path="/quality" element={<Quality />} />
+              <Route path="/industries" element={<Navigate to="/quality" replace />} />
               <Route path="/contact" element={<Contact />} />
             </Routes>
           </Suspense>

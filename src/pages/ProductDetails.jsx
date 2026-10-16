@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { getProducts, getProductById, getImageUrl, getPreloadedProducts } from '../api/api';
 import { resolveProductImage, parseProductContent, getFallbackProduct } from '../data/productDataHelper';
 import { initialProducts } from '../data/catalogSnapshot';
+import { ProductImage } from '../components/ProductImage';
 
 export const ProductDetails = () => {
   const { id } = useParams();
@@ -327,11 +328,12 @@ export const ProductDetails = () => {
             transition={{ duration: 0.5, delay: 0.1 }}
             className="w-full lg:w-5/12 flex flex-col items-center justify-center order-first lg:order-last lg:sticky lg:top-36 mb-6 lg:mb-0"
           >
-            <div className="relative group w-full max-w-[320px] sm:max-w-[400px] lg:max-w-[440px] flex items-center justify-center p-4 lg:p-0 bg-gray-50/50 lg:bg-transparent rounded-2xl lg:rounded-none border border-gray-100 lg:border-none">
-              <img 
-                src={mainImg || primaryResolved} 
-                alt={product.name} 
-                className="w-full h-auto max-h-[300px] sm:max-h-[380px] lg:max-h-[460px] object-contain transition-transform duration-500 group-hover:scale-105 drop-shadow-sm" 
+            <div className="relative group w-full flex items-center justify-center p-2 sm:p-4">
+              <ProductImage
+                src={mainImg || primaryResolved}
+                alt={product.name}
+                size="lg"
+                hoverZoom={true}
               />
             </div>
 
@@ -344,7 +346,7 @@ export const ProductDetails = () => {
                     onClick={() => setMainImg(img)}
                     className={`w-14 h-14 rounded-full border-2 p-1 overflow-hidden transition-all duration-300 ${
                       mainImg === img 
-                        ? 'border-[#e53524] shadow-md scale-105 ring-2 ring-red-100' 
+                        ? 'border-[#e62020] shadow-md scale-105 ring-2 ring-red-100' 
                         : 'border-gray-200 hover:border-gray-400 bg-white'
                     }`}
                   >
@@ -384,13 +386,14 @@ export const ProductDetails = () => {
                   <Link 
                     to={`/products/${prod._id}`} 
                     key={prod._id} 
-                    className="bg-white rounded-xl sm:rounded-2xl p-3.5 sm:p-6 shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-[0_16px_40px_rgba(229,53,36,0.12)] border border-gray-100 hover:border-red-100 transition-all duration-300 group flex flex-col items-center text-center hover:-translate-y-1 active:scale-[0.98]"
+                    className="bg-white rounded-xl sm:rounded-2xl p-3.5 sm:p-5 shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-[0_16px_40px_rgba(230,32,32,0.14)] border border-gray-100 hover:border-red-100 transition-all duration-300 group flex flex-col items-center text-center hover:-translate-y-1 active:scale-[0.98]"
                   >
-                    <div className="w-24 h-24 sm:w-36 sm:h-36 flex items-center justify-center mb-3 sm:mb-4 transition-transform duration-300 group-hover:scale-105">
-                      <img 
+                    <div className="flex items-center justify-center mb-3 sm:mb-4">
+                      <ProductImage 
                         src={prodImg} 
                         alt={prod.name} 
-                        className="max-h-20 max-w-20 sm:max-h-32 sm:max-w-32 object-contain" 
+                        size="sm"
+                        hoverZoom={true}
                       />
                     </div>
                     <h4 className="font-bold text-[#0b2545] group-hover:text-[#e53524] transition-colors text-xs sm:text-sm md:text-base line-clamp-1 mb-1">

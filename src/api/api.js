@@ -328,3 +328,48 @@ export const createInquiry = async (inquiryData) => {
     throw error;
   }
 };
+
+// Default contact settings fallback
+export const defaultContactSettings = {
+  phone: '+91 96321 44367',
+  fax: '+91 80-7966 7629',
+  officePhone: '+91 80-7966 7629',
+  email: 'info@eagleeng.in',
+  companyName: 'EAGLE ENGINEERING',
+  address: 'No. 22, First Floor, Kothnoor Dinne,\nJP Nagar 8th Phase, Kalena Agrahara, Kothnur,\nBengaluru, Karnataka - 560078'
+};
+
+export const getSettings = async () => {
+  try {
+    // Check cached settings
+    const cached = localStorage.getItem('eagle_settings');
+    let fallback = cached ? JSON.parse(cached) : defaultContactSettings;
+
+    const response = await fetch(`${API_URL}/settings?_t=${Date.now()}`, {
+      headers: { 'Accept': 'application/json' },
+      signal: AbortSignal.timeout(10000)
+    });
+    if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+    const res = await response.json();
+    if (res.success && res.data) {
+      const data = {
+        ...defaultContactSettings,
+        ...res.data,
+        officePhone: res.data.officePhone || res.data.fax || defaultContactSettings.officePhone,
+        fax: res.data.fax || defaultContactSettings.fax,
+        phone: res.data.phone || defaultContactSettings.phone,
+        email: res.data.email || defaultContactSettings.email,
+        address: res.data.address || defaultContactSettings.address
+      };
+      try {
+        localStorage.setItem('eagle_settings', JSON.stringify(data));
+      } catch (e) {}
+      return { success: true, data };
+    }
+    return { success: true, data: fallback };
+  } catch (error) {
+    const cached = localStorage.getItem('eagle_settings');
+    const data = cached ? JSON.parse(cached) : defaultContactSettings;
+    return { success: true, data };
+  }
+};

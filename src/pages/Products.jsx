@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { getProducts, getCategories, getSubCategories, getImageUrl, getPreloadedProducts } from '../api/api';
 import { resolveProductImage, parseProductContent } from '../data/productDataHelper';
 import { initialProducts, initialCategories, initialSubCategories } from '../data/catalogSnapshot';
+import { ProductImage } from '../components/ProductImage';
 
 // Helper to extract clean specifications/details for the sliding hover card
 const getProductCardDetails = (p) => {
@@ -553,13 +554,14 @@ export const Products = () => {
                         state={{ fromCategory: selectedCategory, fromSubCategory: selectedSubCategory }}
                         className="product-card-container group bg-white border border-gray-200/90 rounded-xl flex flex-col h-[380px] sm:h-[400px] shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_16px_36px_rgba(0,136,204,0.12)] hover:border-[#0088cc]/40 block"
                       >
-                        {/* Upper Big Image Section */}
-                        <div className="w-full h-[280px] sm:h-[300px] flex items-center justify-center p-6 sm:p-8 bg-white overflow-hidden">
-                          <img 
-                            src={prodImg} 
+                        {/* Upper Big Image Section with Circular Brand Frame */}
+                        <div className="w-full h-[280px] sm:h-[300px] flex items-center justify-center p-4 sm:p-6 bg-white overflow-hidden">
+                          <ProductImage
+                            src={prodImg}
                             alt={p.name}
-                            loading="lazy"
-                            className="product-card-img max-h-full max-w-full object-contain"
+                            size="md"
+                            hoverZoom={true}
+                            className="product-card-img"
                           />
                         </div>
 
