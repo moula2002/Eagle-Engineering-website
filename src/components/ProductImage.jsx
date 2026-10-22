@@ -29,9 +29,15 @@ export const ProductImage = ({
   hoverZoom = true,
   loading = 'lazy',
   decoding = 'async',
-  fallbackText = ''
+  fallbackText = '',
+  strokeColor = '#000000',
+  strokeWidth = 4
 }) => {
   const [hasError, setHasError] = useState(false);
+
+  React.useEffect(() => {
+    setHasError(false);
+  }, [src]);
 
   // Responsive size presets for consistent alignment across pages
   // 'md' is default for grid product cards (Products.jsx)
@@ -49,10 +55,31 @@ export const ProductImage = ({
 
   return (
     <div 
-      className={`relative rounded-full bg-white flex items-center justify-center shrink-0 border border-[#e53524] shadow-[0_3px_12px_rgba(229,53,36,0.12),0_1px_4px_rgba(0,0,0,0.04)] aspect-square overflow-hidden select-none transition-all duration-300 group-hover:shadow-[0_6px_20px_rgba(229,53,36,0.22),0_2px_8px_rgba(0,0,0,0.06)] ${selectedSize} ${className}`}
+      className={`relative flex items-center justify-center shrink-0 aspect-square select-none transition-all duration-300 ${selectedSize} ${className}`}
     >
+      {/* Engineering Regular Hexagon Frame SVG (Crisp Black Line Reference Design) */}
+      <svg 
+        className="absolute inset-0 w-full h-full text-black drop-shadow-[0_4px_12px_rgba(0,0,0,0.08)] group-hover:drop-shadow-[0_8px_20px_rgba(0,0,0,0.18)] transition-all duration-300 pointer-events-none" 
+        viewBox="0 0 200 200" 
+        fill="none" 
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <polygon 
+          points="54,20 146,20 192,100 146,180 54,180 8,100" 
+          fill="white" 
+          stroke={strokeColor || "#000000"} 
+          strokeWidth={strokeWidth} 
+          strokeLinejoin="round" 
+        />
+      </svg>
+
       {/* Inner clean white canvas for centered, uncropped, undistorted product presentation */}
-      <div className="w-[74%] h-[74%] flex items-center justify-center relative">
+      <div 
+        className="w-[78%] h-[78%] flex items-center justify-center relative z-10 overflow-hidden"
+        style={{
+          clipPath: 'polygon(28% 12%, 72% 12%, 94% 50%, 72% 88%, 28% 88%, 6% 50%)'
+        }}
+      >
         {src && !hasError ? (
           <img
             src={src}
@@ -60,8 +87,8 @@ export const ProductImage = ({
             loading={loading}
             decoding={decoding}
             onError={() => setHasError(true)}
-            className={`max-w-full max-h-full object-contain pointer-events-none transition-transform duration-500 ease-out ${
-              hoverZoom ? 'group-hover:scale-108' : ''
+            className={`max-w-[86%] max-h-[86%] object-contain pointer-events-none transition-transform duration-500 ease-out ${
+              hoverZoom ? 'group-hover:scale-110' : ''
             } ${imgClassName}`}
           />
         ) : (

@@ -3,58 +3,87 @@ import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, ChevronRight, ArrowRight } from 'lucide-react';
 import logoNew from '../assets/logo_new.png';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getCategories, getSubCategories, getProducts, getPreloadedProducts } from '../api/api';
-import { initialCategories, initialSubCategories, initialProducts } from '../data/catalogSnapshot';
+import { getCategories, getSubCategories, getProducts } from '../api/api';
 
 export const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [categories, setCategories] = useState(() => initialCategories);
-  const [subCategories, setSubCategories] = useState(() => initialSubCategories);
-  const [products, setProducts] = useState(() => getPreloadedProducts());
+  const [categories, setCategories] = useState([]);
+  const [subCategories, setSubCategories] = useState([]);
+  const [products, setProducts] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [mobileProductsExpanded, setMobileProductsExpanded] = useState(false);
+  const [expandedCategories, setExpandedCategories] = useState({});
+  const [mobileExpandedCategories, setMobileExpandedCategories] = useState({});
   const location = useLocation();
   const activePath = location.pathname;
+
+  const toggleCategoryExpand = (catKey, e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    setExpandedCategories(prev => ({
+      ...prev,
+      [catKey]: !prev[catKey]
+    }));
+  };
+
+  const toggleMobileCategoryExpand = (catKey, e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    setMobileExpandedCategories(prev => ({
+      ...prev,
+      [catKey]: !prev[catKey]
+    }));
+  };
 
   useEffect(() => {
     let isMounted = true;
     const fetchData = async () => {
       try {
         const [catsRes, subCatsRes, prodsRes] = await Promise.allSettled([
-          getCategories(true),
-          getSubCategories(true),
-          getProducts(true)
+          getCategories(false),
+          getSubCategories(false),
+          getProducts(false)
         ]);
         if (isMounted) {
-          if (catsRes.status === 'fulfilled' && catsRes.value?.success && catsRes.value.data?.length > 0) {
+          if (catsRes.status === 'fulfilled' && catsRes.value?.success && Array.isArray(catsRes.value.data)) {
             setCategories(catsRes.value.data);
+          } else {
+            setCategories([]);
           }
-          if (subCatsRes.status === 'fulfilled' && subCatsRes.value?.success && subCatsRes.value.data?.length > 0) {
+          if (subCatsRes.status === 'fulfilled' && subCatsRes.value?.success && Array.isArray(subCatsRes.value.data)) {
             setSubCategories(subCatsRes.value.data);
+          } else {
+            setSubCategories([]);
           }
-          if (prodsRes.status === 'fulfilled' && prodsRes.value?.success && prodsRes.value.data?.length > 0) {
+          if (prodsRes.status === 'fulfilled' && prodsRes.value?.success && Array.isArray(prodsRes.value.data)) {
             setProducts(prodsRes.value.data);
+          } else {
+            setProducts([]);
           }
         }
       } catch (error) {
-        console.warn('Navbar background refresh error:', error);
+        console.error('Navbar fetch error:', error);
       }
     };
     fetchData();
 
     const handleProductsUpdated = (e) => {
-      if (isMounted && Array.isArray(e.detail) && e.detail.length > 0) {
+      if (isMounted && Array.isArray(e.detail)) {
         setProducts(e.detail);
       }
     };
     const handleCategoriesUpdated = (e) => {
-      if (isMounted && Array.isArray(e.detail) && e.detail.length > 0) {
+      if (isMounted && Array.isArray(e.detail)) {
         setCategories(e.detail);
       }
     };
     const handleSubCategoriesUpdated = (e) => {
-      if (isMounted && Array.isArray(e.detail) && e.detail.length > 0) {
+      if (isMounted && Array.isArray(e.detail)) {
         setSubCategories(e.detail);
       }
     };
@@ -73,15 +102,23 @@ export const Navbar = () => {
 
   // Determine target link for category items in dropdown and mobile drawer
   const getCategoryNavigation = (cat) => {
-    const categorySubCats = subCategories.filter(sc => 
-      sc.category && (sc.category._id === cat._id || sc.category.name === cat.name)
-    );
+    const categorySubCats = subCategories.filter(sc => {
+      if (!sc.category) return false;
+      const scCatId = typeof sc.category === 'object' ? sc.category._id : sc.category;
+      const scCatName = typeof sc.category === 'object' ? sc.category.name : '';
+      const catId = cat._id;
+      const catName = (cat.name || '').trim().toLowerCase();
 
-    // If category has subcategories, it opens the flyout or navigates to subcategories page with query param
+      if (catId && scCatId && String(catId) === String(scCatId)) return true;
+      if (catName && scCatName && scCatName.trim().toLowerCase() === catName) return true;
+      return false;
+    });
+
+    // If category has subcategories, it ONLY expands/collapses and does NOT navigate anywhere
     if (categorySubCats.length > 0) {
       return {
-        to: `/subcategories?category=${encodeURIComponent(cat.name)}`,
-        state: { selectedCategory: cat.name },
+        to: null,
+        state: null,
         hasSubCats: true,
         categorySubCats,
         isSingleProduct: false
@@ -160,7 +197,7 @@ export const Navbar = () => {
     { path: '/', label: 'Home' },
     { path: '/about', label: 'About' },
     { path: '/products', label: 'Products' },
-    { path: '/quality', label: 'Quality' },
+    { path: '/quality', label: 'Quality Assurance' },
     { path: '/download', label: 'Download' },
     { path: '/contact', label: 'Contact' },
   ];
@@ -254,31 +291,53 @@ export const Navbar = () => {
                               <div className="bg-[var(--brand-red)] shadow-2xl rounded-2xl flex flex-col relative max-h-[75vh] w-72 overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-thumb]:rounded-full border border-white/10">
                                 {categories.length > 0 ? categories.map((cat, idx) => {
                                   const navInfo = getCategoryNavigation(cat);
-                                  return (
-                                    <div key={idx} className="group relative border-b border-white/10 last:border-b-0 flex-shrink-0">
-                                      <Link
-                                        to={navInfo.to}
-                                        state={navInfo.state}
-                                        onClick={() => setShowDropdown(false)}
-                                        className="px-5 py-3.5 text-[15px] font-medium text-white hover:bg-white/10 transition-colors flex justify-between items-center w-full"
-                                      >
-                                        {cat.name}
-                                        {navInfo.hasSubCats && <ChevronRight className="w-4 h-4 text-white/50 group-hover:rotate-90 transition-transform duration-300" />}
-                                      </Link>
+                                  const catKey = cat._id || cat.name || idx;
+                                  const isExpanded = !!expandedCategories[catKey];
 
-                                      {/* Subcategories Accordion */}
+                                  return (
+                                    <div key={catKey} className="group relative border-b border-white/10 last:border-b-0 flex-shrink-0">
+                                      {navInfo.hasSubCats ? (
+                                        <button
+                                          type="button"
+                                          onClick={(e) => toggleCategoryExpand(catKey, e)}
+                                          className="px-5 py-3.5 text-[15px] font-medium text-white hover:bg-white/10 transition-colors flex justify-between items-center w-full text-left cursor-pointer select-none"
+                                          aria-expanded={isExpanded}
+                                        >
+                                          <span>{cat.name}</span>
+                                          <ChevronRight 
+                                            className={`w-4 h-4 text-white/70 transition-transform duration-200 ${
+                                              isExpanded ? 'rotate-90 text-white' : ''
+                                            }`} 
+                                          />
+                                        </button>
+                                      ) : (
+                                        <Link
+                                          to={navInfo.to}
+                                          state={navInfo.state}
+                                          onClick={() => setShowDropdown(false)}
+                                          className="px-5 py-3.5 text-[15px] font-medium text-white hover:bg-white/10 transition-colors flex justify-between items-center w-full text-left"
+                                        >
+                                          <span>{cat.name}</span>
+                                        </Link>
+                                      )}
+
+                                      {/* Subcategories Accordion - Controlled by click expand/collapse */}
                                       {navInfo.hasSubCats && (
-                                         <div className="max-h-0 overflow-hidden group-hover:max-h-[800px] transition-all duration-500 ease-in-out bg-black/15">
-                                          <div className="flex flex-col py-1">
+                                        <div 
+                                          className={`overflow-hidden transition-all duration-300 ease-in-out bg-black/20 ${
+                                            isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+                                          }`}
+                                        >
+                                          <div className="flex flex-col py-1.5 border-t border-white/5">
                                             {navInfo.categorySubCats.map((sub, sIdx) => {
                                               const subNav = getSubCategoryNavigation(cat, sub);
                                               return (
                                                 <Link
-                                                  key={sIdx}
+                                                  key={sub._id || sIdx}
                                                   to={subNav.to}
                                                   state={subNav.state}
                                                   onClick={() => setShowDropdown(false)}
-                                                  className="px-8 py-2.5 text-[14px] font-medium text-white/70 hover:text-white hover:bg-white/10 transition-colors block w-full relative before:absolute before:left-4 before:top-1/2 before:-translate-y-1/2 before:w-1.5 before:h-1.5 before:bg-white/20 before:rounded-full hover:before:bg-white"
+                                                  className="px-8 py-2.5 text-[14px] font-medium text-white/80 hover:text-white hover:bg-white/15 transition-colors block w-full relative before:absolute before:left-4 before:top-1/2 before:-translate-y-1/2 before:w-1.5 before:h-1.5 before:bg-white/40 before:rounded-full hover:before:bg-white"
                                                 >
                                                   {sub.name}
                                                 </Link>
@@ -395,17 +454,65 @@ export const Navbar = () => {
                               <div className="py-2 flex flex-col">
                                 {categories.length > 0 ? categories.map((cat, idx) => {
                                   const navInfo = getCategoryNavigation(cat);
+                                  const catKey = cat._id || cat.name || idx;
+                                  const isExpanded = !!mobileExpandedCategories[catKey];
+
                                   return (
-                                    <Link
-                                      key={idx}
-                                      to={navInfo.to}
-                                      state={navInfo.state}
-                                      onClick={() => setMobileMenuOpen(false)}
-                                      className="px-6 py-2.5 text-[13px] text-gray-300 hover:text-white hover:bg-white/5 flex items-center justify-between"
-                                    >
-                                      <span>{cat.name}</span>
-                                      {navInfo.hasSubCats && <ChevronRight className="w-3.5 h-3.5 text-gray-400" />}
-                                    </Link>
+                                    <div key={catKey} className="flex flex-col border-b border-white/5 last:border-b-0">
+                                      {navInfo.hasSubCats ? (
+                                        <button
+                                          type="button"
+                                          onClick={(e) => toggleMobileCategoryExpand(catKey, e)}
+                                          className="px-6 py-2.5 text-[13px] text-gray-300 hover:text-white hover:bg-white/5 flex items-center justify-between w-full text-left"
+                                          aria-expanded={isExpanded}
+                                        >
+                                          <span>{cat.name}</span>
+                                          <ChevronRight className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200 ${isExpanded ? 'rotate-90 text-white' : ''}`} />
+                                        </button>
+                                      ) : (
+                                        <Link
+                                          to={navInfo.to}
+                                          state={navInfo.state}
+                                          onClick={() => setMobileMenuOpen(false)}
+                                          className="px-6 py-2.5 text-[13px] text-gray-300 hover:text-white hover:bg-white/5 flex items-center justify-between"
+                                        >
+                                          <span>{cat.name}</span>
+                                        </Link>
+                                      )}
+
+                                      {/* Mobile Subcategories Accordion */}
+                                      {navInfo.hasSubCats && (
+                                        <AnimatePresence>
+                                          {isExpanded && (
+                                            <motion.div
+                                              initial={{ height: 0, opacity: 0 }}
+                                              animate={{ height: 'auto', opacity: 1 }}
+                                              exit={{ height: 0, opacity: 0 }}
+                                              transition={{ duration: 0.2 }}
+                                              className="overflow-hidden bg-black/30"
+                                            >
+                                              <div className="py-1 flex flex-col pl-3">
+                                                {navInfo.categorySubCats.map((sub, sIdx) => {
+                                                  const subNav = getSubCategoryNavigation(cat, sub);
+                                                  return (
+                                                    <Link
+                                                      key={sub._id || sIdx}
+                                                      to={subNav.to}
+                                                      state={subNav.state}
+                                                      onClick={() => setMobileMenuOpen(false)}
+                                                      className="px-6 py-2 text-[12.5px] text-gray-400 hover:text-white hover:bg-white/5 flex items-center gap-2"
+                                                    >
+                                                      <span className="w-1.5 h-1.5 rounded-full bg-[var(--brand-red)]" />
+                                                      <span>{sub.name}</span>
+                                                    </Link>
+                                                  );
+                                                })}
+                                              </div>
+                                            </motion.div>
+                                          )}
+                                        </AnimatePresence>
+                                      )}
+                                    </div>
                                   );
                                 }) : (
                                   <div className="px-6 py-2 text-xs text-gray-500 italic">No categories</div>

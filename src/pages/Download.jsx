@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Download as DownloadIcon, FileText, Eye } from 'lucide-react';
+import { Download as DownloadIcon, Eye } from 'lucide-react';
 
 // Assets
 import logoNew from '../assets/logo_new.png';
@@ -101,17 +101,9 @@ export const Download = () => {
 
               {/* Card Meta & Actions */}
               <div className="p-6 sm:p-7 bg-white border-t border-gray-100 text-center">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-50 text-[var(--brand-red)] text-xs font-bold uppercase tracking-wider mb-3">
-                  <FileText className="w-3.5 h-3.5" />
-                  <span>PDF Document • Product Catalogue</span>
-                </div>
-
-                <h4 className="text-xl font-bold text-[#0b2545] font-heading mb-2">
+                <h4 className="text-xl font-bold text-[#0b2545] font-heading mb-6">
                   Eagle Engineering Product Brochure
                 </h4>
-                <p className="text-xs text-gray-500 mb-6">
-                  Complete technical specifications, item codes, and dimensional drawings for all product lines.
-                </p>
 
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
                   <a 

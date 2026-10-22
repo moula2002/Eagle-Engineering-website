@@ -9,8 +9,7 @@ import zincImg from '../assets/zinc_fastener.png';
 import cuttingWheelImg from '../assets/cutting_wheel.png';
 import grindingWheelImg from '../assets/grinding_wheel.png';
 import fastener1 from '../assets/fastener_1.png';
-import { initialProducts } from './catalogSnapshot';
-import { productSuffixToImage } from '../api/api';
+
 
 export const knownProductCatalog = {
   csk: {
@@ -190,7 +189,7 @@ export const resolveProductImage = (product) => {
 
     // Backend uploads from admin panel (/uploads/...)
     if (trimmed.startsWith('/uploads')) {
-      const baseUrl = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : 'https://eagle-engineering-server.onrender.com';
+      const baseUrl = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : 'https://eagle-engineering-server-dzor.onrender.com';
       return `${baseUrl}${trimmed}`;
     }
 
@@ -200,32 +199,6 @@ export const resolveProductImage = (product) => {
     }
 
     return trimmed;
-  }
-
-  // 2. Only if product has no image at all, check suffix map fallback
-  if (product._id) {
-    const suffix = String(product._id).slice(-6).toLowerCase();
-    if (productSuffixToImage[suffix]) {
-      return productSuffixToImage[suffix];
-    }
-  }
-
-  // 3. Fallback from initialProducts snapshot by ID or SKU if available
-  const match = initialProducts.find(p =>
-    (product._id && p._id === product._id) ||
-    (product.sku && p.sku === product.sku)
-  );
-
-  if (match) {
-    const matchImg = match.mainImage || match.image || match.imageUrl;
-    if (matchImg && typeof matchImg === 'string' && matchImg.trim()) {
-      const trimmed = matchImg.trim();
-      if (trimmed.startsWith('/uploads')) {
-        const baseUrl = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : 'https://eagle-engineering-server.onrender.com';
-        return `${baseUrl}${trimmed}`;
-      }
-      return trimmed;
-    }
   }
 
   return '';
@@ -312,92 +285,10 @@ export const parseProductContent = (product) => {
   return { description, features, applications };
 };
 
-export const getFallbackProduct = (idOrSlug = '') => {
-  if (!idOrSlug) return null;
-  const s = String(idOrSlug).toLowerCase().trim();
+export const getFallbackProduct = () => null;
 
-  // 1. Direct match in dynamic localStorage cache first
-  try {
-    const cached = localStorage.getItem('eagle_cached_products');
-    if (cached) {
-      const parsed = JSON.parse(cached);
-      if (Array.isArray(parsed)) {
-        const cachedMatch = parsed.find(p => p._id === idOrSlug || p.sku === idOrSlug);
-        if (cachedMatch) {
-          return {
-            ...cachedMatch,
-            mainImage: resolveProductImage(cachedMatch)
-          };
-        }
-      }
-    }
-  } catch (e) {}
+export const defaultProductList = [];
 
-  // 2. Direct match by ID or SKU in initialProducts
-  const exactMatch = initialProducts.find(p => p._id === idOrSlug || p.sku === idOrSlug);
-  if (exactMatch) {
-    return {
-      ...exactMatch,
-      mainImage: resolveProductImage(exactMatch)
-    };
-  }
-
-  // 3. Known MongoDB IDs and slugs
-  if (s === '6ac794d75e1e58a06dec9d97' || s.includes('csk')) {
-    return {
-      _id: '6ac794d75e1e58a06dec9d97',
-      name: knownProductCatalog.csk.title,
-      shortDescription: knownProductCatalog.csk.description,
-      features: knownProductCatalog.csk.features,
-      applications: knownProductCatalog.csk.applications,
-      mainImage: knownProductCatalog.csk.image,
-      category: { name: 'CSK-Head-Screws' }
-    };
-  }
-  if (s === '6aca0059e751aa9cd10a6224' || s.includes('pan')) {
-    return {
-      _id: '6aca0059e751aa9cd10a6224',
-      name: knownProductCatalog.pan.title,
-      shortDescription: knownProductCatalog.pan.description,
-      features: knownProductCatalog.pan.features,
-      applications: knownProductCatalog.pan.applications,
-      mainImage: knownProductCatalog.pan.image,
-      category: { name: 'Pan Head Screws' }
-    };
-  }
-  // 2. Name match in initialProducts
-  const nameMatch = initialProducts.find(p => 
-    p.name.toLowerCase().trim() === s || 
-    p.name.toLowerCase().replace(/[^a-z0-9]/g, '-') === s ||
-    p.name.toLowerCase().includes(s)
-  );
-  if (nameMatch) {
-    return {
-      ...nameMatch,
-      mainImage: resolveProductImage(nameMatch)
-    };
-  }
-
-  // 3. Known product catalog fallback by exact key or full title
-  for (const key of Object.keys(knownProductCatalog)) {
-    const item = knownProductCatalog[key];
-    if (s === key || s === item.title.toLowerCase() || (s.length > 8 && s.includes(item.title.toLowerCase()))) {
-      return {
-        _id: idOrSlug,
-        name: item.title,
-        shortDescription: item.description,
-        features: item.features,
-        applications: item.applications,
-        mainImage: item.image,
-        category: { name: 'Fasteners' }
-      };
-    }
-  }
-
-  return null;
-};
-
-export const defaultProductList = initialProducts;
 
 
 

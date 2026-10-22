@@ -2,9 +2,8 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Search, FolderTree, X, Layers, Filter } from 'lucide-react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { getProducts, getCategories, getSubCategories, getImageUrl, getPreloadedProducts } from '../api/api';
+import { getProducts, getCategories, getSubCategories, getImageUrl } from '../api/api';
 import { resolveProductImage, parseProductContent } from '../data/productDataHelper';
-import { initialProducts, initialCategories, initialSubCategories } from '../data/catalogSnapshot';
 import { ProductImage } from '../components/ProductImage';
 
 // Helper to extract clean specifications/details for the sliding hover card
@@ -88,10 +87,11 @@ export const Products = () => {
   const initialSubCat = paramSubCategory || location.state?.selectedSubCategory || sessionStorage.getItem('eagle_selected_subcategory') || 'All';
   const initialSearchVal = paramSearch || '';
 
-  // Instant data initialization - zero blank screen wait
-  const [productsList, setProductsList] = useState(() => getPreloadedProducts());
-  const [categoriesList, setCategoriesList] = useState(() => initialCategories);
-  const [subCategoriesList, setSubCategoriesList] = useState(() => initialSubCategories);
+  // Clean server-only data initialization
+  const [productsList, setProductsList] = useState([]);
+  const [categoriesList, setCategoriesList] = useState([]);
+  const [subCategoriesList, setSubCategoriesList] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState(initialSearchVal);
   
   const [selectedCategory, setSelectedCategory] = useState(initialCat);
@@ -190,43 +190,55 @@ export const Products = () => {
   useEffect(() => {
     let isMounted = true;
     const fetchLatestData = async () => {
+      // Don't show blocking loading if we already have data in state or session
+      if (productsList.length === 0) {
+        setLoading(true);
+      }
       try {
         const [productsRes, categoriesRes, subCategoriesRes] = await Promise.allSettled([
-          getProducts(true),
-          getCategories(true),
-          getSubCategories(true)
+          getProducts(false),
+          getCategories(false),
+          getSubCategories(false)
         ]);
 
         if (isMounted) {
-          if (productsRes.status === 'fulfilled' && productsRes.value?.success && productsRes.value.data?.length > 0) {
+          if (productsRes.status === 'fulfilled' && productsRes.value?.success && Array.isArray(productsRes.value.data)) {
             setProductsList(productsRes.value.data);
+          } else {
+            setProductsList([]);
           }
-          if (categoriesRes.status === 'fulfilled' && categoriesRes.value?.success && categoriesRes.value.data?.length > 0) {
+          if (categoriesRes.status === 'fulfilled' && categoriesRes.value?.success && Array.isArray(categoriesRes.value.data)) {
             setCategoriesList(categoriesRes.value.data);
+          } else {
+            setCategoriesList([]);
           }
-          if (subCategoriesRes.status === 'fulfilled' && subCategoriesRes.value?.success && subCategoriesRes.value.data?.length > 0) {
+          if (subCategoriesRes.status === 'fulfilled' && subCategoriesRes.value?.success && Array.isArray(subCategoriesRes.value.data)) {
             setSubCategoriesList(subCategoriesRes.value.data);
+          } else {
+            setSubCategoriesList([]);
           }
         }
       } catch (error) {
-        console.warn('Background refresh encountered error, using current cache:', error);
+        console.error('Products fetch error:', error);
+      } finally {
+        if (isMounted) setLoading(false);
       }
     };
 
     fetchLatestData();
 
     const handleProductsUpdated = (e) => {
-      if (isMounted && Array.isArray(e.detail) && e.detail.length > 0) {
+      if (isMounted && Array.isArray(e.detail)) {
         setProductsList(e.detail);
       }
     };
     const handleCategoriesUpdated = (e) => {
-      if (isMounted && Array.isArray(e.detail) && e.detail.length > 0) {
+      if (isMounted && Array.isArray(e.detail)) {
         setCategoriesList(e.detail);
       }
     };
     const handleSubCategoriesUpdated = (e) => {
-      if (isMounted && Array.isArray(e.detail) && e.detail.length > 0) {
+      if (isMounted && Array.isArray(e.detail)) {
         setSubCategoriesList(e.detail);
       }
     };
@@ -313,6 +325,60 @@ export const Products = () => {
       return matchesCategory && matchesSubCategory && matchesSearch;
     });
   }, [productsList, selectedCategory, selectedSubCategory, searchQuery]);
+
+  // Infinite scroll pagination with IntersectionObserver
+  const PAGE_SIZE = 12;
+  const [displayCount, setDisplayCount] = useState(PAGE_SIZE);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const observerTargetRef = useRef(null);
+  const isLoadingRef = useRef(false);
+
+  // Reset pagination when category, subcategory, or search query changes
+  useEffect(() => {
+    setDisplayCount(PAGE_SIZE);
+    setIsLoadingMore(false);
+    isLoadingRef.current = false;
+  }, [selectedCategory, selectedSubCategory, searchQuery]);
+
+  const visibleProducts = useMemo(() => {
+    return filteredProducts.slice(0, displayCount);
+  }, [filteredProducts, displayCount]);
+
+  const hasMore = visibleProducts.length < filteredProducts.length;
+
+  // Infinite scroll observer - auto-loads next batch when approaching end of list
+  useEffect(() => {
+    const target = observerTargetRef.current;
+    if (!target || !hasMore) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (entry.isIntersecting && !isLoadingRef.current && hasMore) {
+          isLoadingRef.current = true;
+          setIsLoadingMore(true);
+
+          setTimeout(() => {
+            setDisplayCount(prev => prev + PAGE_SIZE);
+            setIsLoadingMore(false);
+            isLoadingRef.current = false;
+          }, 300);
+        }
+      },
+      {
+        root: null,
+        rootMargin: '250px 0px',
+        threshold: 0.1
+      }
+    );
+
+    observer.observe(target);
+
+    return () => {
+      if (target) observer.unobserve(target);
+      observer.disconnect();
+    };
+  }, [hasMore, visibleProducts.length, filteredProducts.length]);
 
   return (
     <div className="bg-white min-h-screen">
@@ -517,7 +583,21 @@ export const Products = () => {
               )}
 
               {/* Products Grid - 2 columns on mobile, 3 on md/lg */}
-              {filteredProducts.length === 0 ? (
+              {loading && productsList.length === 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-3 gap-5 sm:gap-6 lg:gap-7">
+                  {[1, 2, 3, 4, 5, 6].map((n) => (
+                    <div key={n} className="bg-white border border-gray-100 rounded-2xl h-[360px] p-6 flex flex-col items-center justify-between animate-pulse shadow-sm">
+                      <div className="w-44 h-44 flex items-center justify-center">
+                        <div className="w-36 h-36 rounded-2xl bg-gray-100 border border-gray-200/60"></div>
+                      </div>
+                      <div className="space-y-2 mt-4 w-full flex flex-col items-center">
+                        <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                        <div className="h-3 bg-gray-100 rounded w-1/2"></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : filteredProducts.length === 0 ? (
                 <div className="bg-white rounded-2xl border border-gray-100 p-8 sm:p-12 text-center shadow-[0_4px_25px_rgb(0,0,0,0.03)]">
                   <div className="w-14 h-14 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 rounded-full bg-red-50 flex items-center justify-center text-[var(--brand-red)]">
                     <Search className="w-7 h-7 sm:w-8 sm:h-8 opacity-60" />
@@ -531,73 +611,84 @@ export const Products = () => {
                   </p>
                   <button
                     onClick={handleResetFilters}
-                    className="px-5 py-2.5 bg-[#0b2545] text-white rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-[var(--brand-red)] transition-colors active:scale-95"
+                    className="px-5 py-2.5 bg-[#0b2545] text-white rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-[var(--brand-red)] transition-colors active:scale-95 cursor-pointer"
                   >
                     View All Products
                   </button>
                 </div>
               ) : (
-                <motion.div 
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.3 }}
-                  className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-3 gap-5 sm:gap-6 lg:gap-7"
-                >
-                  {filteredProducts.map((p, idx) => {
-                    const prodImg = resolveProductImage(p);
-                    const details = getProductCardDetails(p);
+                <>
+                  <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.3 }}
+                    className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-3 gap-5 sm:gap-6 lg:gap-7"
+                  >
+                    {visibleProducts.map((p, idx) => {
+                      const prodImg = resolveProductImage(p);
+                      const catName = p.category?.name || (typeof p.category === 'string' ? p.category : '');
                     
-                    return (
-                      <Link 
-                        key={p._id || idx} 
-                        to={`/products/${p._id}`}
-                        state={{ fromCategory: selectedCategory, fromSubCategory: selectedSubCategory }}
-                        className="product-card-container group bg-white border border-gray-200/90 rounded-xl flex flex-col h-[380px] sm:h-[400px] shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_16px_36px_rgba(0,136,204,0.12)] hover:border-[#0088cc]/40 block"
-                      >
-                        {/* Upper Big Image Section with Circular Brand Frame */}
-                        <div className="w-full h-[280px] sm:h-[300px] flex items-center justify-center p-4 sm:p-6 bg-white overflow-hidden">
-                          <ProductImage
-                            src={prodImg}
-                            alt={p.name}
-                            size="md"
-                            hoverZoom={true}
-                            className="product-card-img"
-                          />
-                        </div>
-
-                        {/* Sliding Content Drawer with Blue Accent Line on Top */}
-                        <div className="product-card-drawer bg-white shadow-[0_-4px_16px_rgba(0,0,0,0.05)] flex flex-col">
-                          {/* Vibrant Blue Accent Line */}
-                          <div className="w-full h-[3px] bg-[#0088cc] shrink-0" />
-
-                          {/* Title Area (always visible in idle state, ~57px tall) */}
-                          <div className="px-5 py-3.5 min-h-[57px] flex items-center bg-white shrink-0">
-                            <h3 className="text-sm sm:text-[15px] font-bold text-[#0b2545] tracking-wide uppercase line-clamp-1 group-hover:text-[#0088cc] transition-colors">
-                              {p.name}
-                            </h3>
+                      return (
+                        <Link 
+                          key={p._id || idx} 
+                          to={`/products/${p._id}`}
+                          state={{ fromCategory: selectedCategory, fromSubCategory: selectedSubCategory }}
+                          className="group bg-white border border-gray-100 hover:border-red-200/80 rounded-2xl flex flex-col items-center p-5 sm:p-6 shadow-[0_2px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_12px_32px_rgba(229,53,36,0.12)] hover:-translate-y-1.5 transition-all duration-300 block text-center"
+                        >
+                          {/* Upper Hexagon Product Frame (Matching Reference Hexagon) */}
+                          <div className="w-full flex items-center justify-center py-2 sm:py-3">
+                            <ProductImage
+                              src={prodImg}
+                              alt={p.name}
+                              size="md"
+                              hoverZoom={true}
+                            />
                           </div>
 
-                          {/* Hover Details Panel (reveals smoothly when sliding up) */}
-                          <div className="px-5 pb-5 pt-1 text-[12px] sm:text-[12.5px] text-gray-600 flex flex-col gap-1.5 bg-white border-t border-gray-100">
-                            {details.map((item, i) => (
-                              <div key={i} className="leading-snug">
-                                {item.label ? (
-                                  <span>
-                                    <strong className="text-gray-800 font-semibold">{item.label}</strong>
-                                    <span className="text-gray-400 mx-1.5">-</span>
-                                    <span className="text-gray-600">{item.value}</span>
-                                  </span>
-                                ) : (
-                                  <span className="text-gray-600 line-clamp-2">{item.value}</span>
-                                )}
-                              </div>
-                            ))}
+                          {/* Content Section */}
+                          <div className="w-full mt-3 flex flex-col items-center flex-1 justify-between">
+                            <div>
+                              {catName && (
+                                <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
+                                  {catName}
+                                </span>
+                              )}
+                              <h3 className="text-sm sm:text-[15px] font-bold text-[#0b2545] tracking-wide uppercase line-clamp-2 group-hover:text-[var(--brand-red)] transition-colors">
+                                {p.name}
+                              </h3>
+                            </div>
+
+                            {/* Clean View Details Indicator */}
+                            <div className="mt-4 pt-3 border-t border-gray-100/80 w-full flex items-center justify-center">
+                              <span className="text-xs font-bold text-[var(--brand-red)] group-hover:text-red-700 uppercase tracking-wider flex items-center gap-1 transition-colors">
+                                View Details 
+                                <span className="inline-block transition-transform duration-200 group-hover:translate-x-1">&rarr;</span>
+                              </span>
+                            </div>
                           </div>
-                        </div>
-                      </Link>
-                    );
-                  })}
-                </motion.div>
+                        </Link>
+                      );
+                    })}
+                  </motion.div>
+
+                {/* Infinite Scrolling Sentinel & Subtle Loading Indicator */}
+                {hasMore && (
+                  <div 
+                    ref={observerTargetRef} 
+                    className="w-full mt-8 mb-4 py-4 flex flex-col items-center justify-center min-h-[48px]"
+                    aria-live="polite"
+                  >
+                    {isLoadingMore ? (
+                      <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-white shadow-sm border border-gray-200/80 text-gray-600 text-xs font-semibold animate-pulse">
+                        <div className="w-4 h-4 border-2 border-[var(--brand-red)] border-t-transparent rounded-full animate-spin" />
+                        <span>Loading more products...</span>
+                      </div>
+                    ) : (
+                      <div className="h-4 w-full" />
+                    )}
+                  </div>
+                )}
+              </>
               )}
 
             </div>

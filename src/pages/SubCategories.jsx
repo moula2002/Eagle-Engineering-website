@@ -3,15 +3,14 @@ import { useLocation, Link, useNavigate, useSearchParams } from 'react-router-do
 import { motion } from 'framer-motion';
 import { FolderTree } from 'lucide-react';
 import { getCategories, getSubCategories, getImageUrl } from '../api/api';
-import { initialCategories, initialSubCategories, initialProducts } from '../data/catalogSnapshot';
 
 export const SubCategories = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [categoriesList, setCategoriesList] = useState(() => initialCategories);
-  const [subCategoriesList, setSubCategoriesList] = useState(() => initialSubCategories);
-  const [loading, setLoading] = useState(false);
+  const [categoriesList, setCategoriesList] = useState([]);
+  const [subCategoriesList, setSubCategoriesList] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   // Read category with priority: URL query param -> route state -> sessionStorage -> first available category
   const initialCategory = 
@@ -44,22 +43,29 @@ export const SubCategories = () => {
   useEffect(() => {
     let isMounted = true;
     const fetchData = async () => {
+      if (categoriesList.length === 0) {
+        setLoading(true);
+      }
       try {
         const [categoriesJson, subCategoriesJson] = await Promise.allSettled([
-          getCategories(),
-          getSubCategories()
+          getCategories(false),
+          getSubCategories(false)
         ]);
         
         if (isMounted) {
-          if (categoriesJson.status === 'fulfilled' && categoriesJson.value?.success && categoriesJson.value.data?.length > 0) {
+          if (categoriesJson.status === 'fulfilled' && categoriesJson.value?.success && Array.isArray(categoriesJson.value.data)) {
             setCategoriesList(categoriesJson.value.data);
+          } else {
+            setCategoriesList([]);
           }
-          if (subCategoriesJson.status === 'fulfilled' && subCategoriesJson.value?.success && subCategoriesJson.value.data?.length > 0) {
+          if (subCategoriesJson.status === 'fulfilled' && subCategoriesJson.value?.success && Array.isArray(subCategoriesJson.value.data)) {
             setSubCategoriesList(subCategoriesJson.value.data);
+          } else {
+            setSubCategoriesList([]);
           }
         }
       } catch (error) {
-        console.warn('SubCategories background refresh error:', error);
+        console.error('SubCategories fetch error:', error);
       } finally {
         if (isMounted) setLoading(false);
       }

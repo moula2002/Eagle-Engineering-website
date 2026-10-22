@@ -1,24 +1,134 @@
 import React, { useState, useEffect } from 'react';
 import { Hero } from '../components/Hero';
-import { ArrowRight, Car, Plane, Zap, Factory, Award, Users, Box, Percent } from 'lucide-react';
+import {
+  ArrowRight,
+  Factory,
+  HardHat,
+  Layers,
+  ArrowUpDown,
+  DoorClosed,
+  Hammer,
+  LayoutGrid,
+  Sun,
+  Warehouse,
+  Building,
+  Building2,
+  Wind,
+  ShieldCheck,
+  ArrowDown
+} from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Counter } from '../components/Counter';
-import logo1 from '../assets/client_logo_1_color.jpg';
-import logo2 from '../assets/client_logo_2_color.jpg';
-import logo3 from '../assets/client_logo_3_color.jpg';
-import logo4 from '../assets/client_logo_4_color.jpg';
-import logo5 from '../assets/client_logo_5_color.jpg';
 import fastener1 from '../assets/fastener_1.png';
 import fastener2 from '../assets/fastener_2.png';
-import { getProducts, getImageUrl, getPreloadedProducts } from '../api/api';
+import { getProducts, getImageUrl } from '../api/api';
 import { resolveProductImage } from '../data/productDataHelper';
-import { initialProducts } from '../data/catalogSnapshot';
+import { ProductImage } from '../components/ProductImage';
+
+const industriesList = [
+  {
+    name: 'PEB & STEEL CONSTRUCTION',
+    icon: HardHat,
+    description: 'High-tensile structural fasteners and heavy anchor bolts engineered for PEB frameworks.',
+    backDescription: 'Structural grade 8.8/10.9 bolts, heavy wedge anchors, and self-drilling screws for steel erections.',
+    badge: 'Heavy Structural'
+  },
+  {
+    name: 'ROOFING & CLADDING',
+    icon: Layers,
+    description: 'Self-drilling screws with EPDM washers engineered for leak-proof metal roof installations.',
+    backDescription: 'Hex head tek screws, vulcanized washers, and lap stitch screws with corrosion-resistant coatings.',
+    badge: 'Weatherproof Seal'
+  },
+  {
+    name: 'ELEVATORS, ESCALATORS & LIFTS',
+    icon: ArrowUpDown,
+    description: 'Vibration-proof dynamic fasteners and anchors calibrated for passenger transport safety.',
+    backDescription: 'Guide rail anchors, counterweight bolts, and high-tensile locking fasteners resisting dynamic fatigue.',
+    badge: 'Zero Vibration'
+  },
+  {
+    name: 'uPVC DOORS & WINDOWS',
+    icon: DoorClosed,
+    description: 'Specialized reinforcement and hardware fixing screws designed for multi-chamber profiles.',
+    backDescription: 'Steel reinforcement screws, friction stay fixings, and flush countersunk self-tapping screws.',
+    badge: 'Fenestration Fixings'
+  },
+  {
+    name: 'FURNITURE & WOODWORKING',
+    icon: Hammer,
+    description: 'Deep-thread chipboard and confirmat screws providing strong grip without wood splitting.',
+    backDescription: 'Yellow zinc chipboard screws, cabinet assembly hardware, and flush drywall screws for woodwork.',
+    badge: 'Deep Thread Grip'
+  },
+  {
+    name: 'INTERIOR & DRYWALL',
+    icon: LayoutGrid,
+    description: 'Black phosphate bugle head screws and rapid ceiling anchors for partition wall systems.',
+    backDescription: 'Fast-driving drywall screws, drop-in ceiling anchors, and toggle bolts for gypsum partitions.',
+    badge: 'Acoustic & Drywall'
+  },
+  {
+    name: 'INDUSTRIAL & MANUFACTURING',
+    icon: Factory,
+    description: 'Certified DIN/ISO standard machine screws and bolts for assembly lines and plant machinery.',
+    backDescription: 'Hex socket head cap screws, metric machine bolts, flange nuts, and industrial spring washers.',
+    badge: 'DIN / ISO Certified'
+  },
+  {
+    name: 'CONSTRUCTION & INFRASTRUCTURE',
+    icon: Building2,
+    description: 'Heavy-duty chemical and mechanical through-bolts for concrete and civil engineering works.',
+    backDescription: 'Chemical anchor rods, foundation bolts, and structural through-bolts for bridges and infrastructure.',
+    badge: 'Seismic Rated'
+  },
+  {
+    name: 'SOLAR & RENEWABLE ENERGY',
+    icon: Sun,
+    description: 'Marine-grade stainless steel hardware and bi-metal screws resisting outdoor UV and salt spray.',
+    backDescription: 'SS 304/316 solar mounting bolts, rail clamps, and weather-resistant rooftop fixing screws.',
+    badge: 'Corrosion Proof'
+  },
+  {
+    name: 'FACADE & CURTAIN WALL SYSTEMS',
+    icon: ShieldCheck,
+    description: 'Architectural fasteners engineered to withstand extreme wind shear and thermal building movement.',
+    backDescription: 'Bi-metal facade screws, undercut anchors, and isolation fixings for glass and ACP cladding.',
+    badge: 'Wind Shear Rated'
+  },
+  {
+    name: 'WAREHOUSING & INDUSTRIAL SHEDS',
+    icon: Warehouse,
+    description: 'Heavy base-plate anchors and purlin fasteners for high-bay racking and logistics facilities.',
+    backDescription: 'Expansion floor anchors, bracing hardware, and portal frame fasteners for high-capacity racking.',
+    badge: 'High Load Bearing'
+  },
+  {
+    name: 'COMMERCIAL & RESIDENTIAL BUILDINGS',
+    icon: Building,
+    description: 'Comprehensive range of multi-substrate fixing screws and masonry anchors for modern buildings.',
+    backDescription: 'Frame fixings, multi-purpose screws, and nylon wall plugs supporting MEP and architectural fit-outs.',
+    badge: 'Universal Fixings'
+  },
+  {
+    name: 'HVAC & MEP INSTALLATIONS',
+    icon: Wind,
+    description: 'Continuously threaded rods, beam clamps, and duct screws for secure overhead suspensions.',
+    backDescription: 'M6-M24 threaded rods, channel strut nuts, and drop-in anchors for ventilation and piping routes.',
+    badge: 'Fire & Load Rated'
+  }
+];
 
 export const Home = () => {
-  const [productsList, setProductsList] = useState(() => getPreloadedProducts());
-  const [loading, setLoading] = useState(false);
+  const [productsList, setProductsList] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [skipAnimation, setSkipAnimation] = useState(false);
+  const [flippedIndustryIndex, setFlippedIndustryIndex] = useState(null);
+
+  const handleIndustryCardClick = (idx) => {
+    setFlippedIndustryIndex(prev => prev === idx ? null : idx);
+  };
 
   useEffect(() => {
     if (sessionStorage.getItem('homeScrollTarget')) {
@@ -30,12 +140,17 @@ export const Home = () => {
     let isMounted = true;
     const fetchProducts = async () => {
       try {
-        const json = await getProducts(true);
-        if (isMounted && json.success && json.data) {
-          setProductsList(json.data);
+        const json = await getProducts(false);
+        if (isMounted) {
+          if (json.success && Array.isArray(json.data)) {
+            setProductsList(json.data);
+          } else {
+            setProductsList([]);
+          }
         }
       } catch (error) {
-        console.warn('Home page products refresh error:', error);
+        console.error('Home page products refresh error:', error);
+        if (isMounted) setProductsList([]);
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -43,7 +158,7 @@ export const Home = () => {
     fetchProducts();
 
     const handleProductsUpdated = (e) => {
-      if (isMounted && Array.isArray(e.detail) && e.detail.length > 0) {
+      if (isMounted && Array.isArray(e.detail)) {
         setProductsList(e.detail);
       }
     };
@@ -88,12 +203,12 @@ export const Home = () => {
   return (
     <>
       <Hero />
-      
+
       {/* About Us Preview Section */}
       <section className="py-24 bg-gray-50/50 relative overflow-hidden bg-dot-pattern">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="flex flex-col lg:flex-row gap-16 items-center">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, x: -30 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true, margin: "-100px" }}
@@ -104,12 +219,23 @@ export const Home = () => {
                 <div className="h-[2px] w-12 bg-[var(--brand-red)]"></div>
                 <h3 className="text-[var(--brand-red)] font-bold uppercase tracking-widest text-sm">WHO WE ARE</h3>
               </div>
-              <h2 className="text-4xl text-[#0b2545] font-bold mb-6 font-heading uppercase tracking-wide leading-tight">
-                10+ YEARS OF <br/>ENGINEERING EXCELLENCE
+              <h2 className="text-3xl sm:text-4xl text-[#0b2545] font-bold mb-6 font-heading uppercase tracking-wide leading-tight">
+                10+ YEARS OF <br />FASTENING EXCELLENCE
               </h2>
-              <p className="text-gray-500 mb-8 leading-relaxed text-base font-light">
-                Eagle Engineering is one of the leading Importers/Exporters and Suppliers of Industrial fasteners. We supply a wide range of fasteners and self-drilling screws, which comply with international standards and specifications. Our fasteners are made in accordance to particular requirements, and are manufactured to best suit the needs of the clients. Moreover, the products offered by us are widely known for their features like high strength, superior finish, corrosion resistance, and accurate dimensions. We have never compromised on the quality and the services provided to the customer. Our company has established a well-equipped infrastructural unit. It has various departments like Technical, Quality control, and others, which helps us in performing our business process in the best possible way. We provide technical support, customer service, experience, and dependability. We maintain an extensive inventory of Fasteners to provide our customers with fast delivery of their products.
-              </p>
+              <div className="space-y-4 text-gray-600 mb-8 leading-relaxed text-[15px] font-normal">
+                <p>
+                  Eagle Engineering is a trusted supplier of premium industrial fasteners, anchors, uPVC door and window hardware, chipboard screws, drywall screws, and a comprehensive range of fastening solutions.
+                </p>
+                <p>
+                  With over a decade of industry experience, we are committed to delivering high-quality products that meet international standards and diverse customer requirements. Our products are known for their superior strength, durability, corrosion resistance, precision, and reliable performance across a wide range of industries.
+                </p>
+                <p>
+                  At Eagle Engineering, quality, customer satisfaction, and reliability are at the heart of everything we do. With an extensive product range, strong supplier partnerships, technical expertise, and efficient inventory management, we ensure consistent quality, competitive pricing, and timely delivery.
+                </p>
+                <p>
+                  We take pride in building long-term customer relationships by providing dependable fastening solutions, professional service, and technical support tailored to the evolving needs of the construction, engineering, and industrial sectors.
+                </p>
+              </div>
               <div className="flex gap-4">
                 <Link to="/about" className="px-8 py-3.5 bg-[var(--brand-red)] text-white font-bold rounded-xl text-sm hover:bg-red-700 transition-all uppercase shadow-[0_4px_14px_0_rgba(230,32,32,0.39)] hover:shadow-[0_6px_20px_rgba(230,32,32,0.23)] hover:-translate-y-0.5">
                   Discover More
@@ -119,8 +245,8 @@ export const Home = () => {
                 </Link>
               </div>
             </motion.div>
-            
-            <motion.div 
+
+            <motion.div
               initial={{ opacity: 0, x: 30 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true, margin: "-100px" }}
@@ -132,15 +258,15 @@ export const Home = () => {
                 <img src="https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80" alt="Precision Engineering" className="w-full h-[400px] object-cover rounded-xl group-hover:scale-105 transition-transform duration-700" loading="lazy" decoding="async" />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#0b2545]/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-xl pointer-events-none"></div>
               </div>
-              
+
               {/* Floating Experience Badge */}
-              <motion.div 
-                animate={{ y: [0, -10, 0] }} 
+              <motion.div
+                animate={{ y: [0, -10, 0] }}
                 transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
                 className="absolute -bottom-6 -left-6 bg-[var(--brand-red)] text-white p-6 rounded-2xl shadow-[0_20px_40px_rgba(230,32,32,0.3)] z-20 hidden md:block"
               >
                 <div className="text-4xl font-bold font-heading mb-1 text-center">10+</div>
-                <div className="text-xs font-semibold tracking-wider uppercase text-center text-white/90">Years of<br/>Excellence</div>
+                <div className="text-xs font-semibold tracking-wider uppercase text-center text-white/90">Years of<br />Fastening Excellence</div>
               </motion.div>
             </motion.div>
           </div>
@@ -148,188 +274,273 @@ export const Home = () => {
       </section>
 
       {/* Industries Section */}
-      <section className="py-24 bg-[#0b2545] relative overflow-hidden">
-        <div className="absolute inset-0 opacity-20 bg-industrial-pattern"></div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-100px" }}
-            className="text-center mb-16"
-          >
-            <h2 className="text-3xl font-heading font-bold text-white uppercase tracking-wide mb-4">
+      <section id="industries" className="bg-gray-50 pb-20 pt-16 sm:pb-24 sm:pt-20 relative z-20 bg-industrial-pattern border-b border-gray-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+          {/* Section Heading */}
+          <div className="text-center mb-12 sm:mb-14">
+            <div className="flex items-center justify-center gap-3 mb-2.5">
+              <div className="h-[2px] w-8 sm:w-12 bg-[var(--brand-red)]"></div>
+              <span className="text-[var(--brand-red)] font-bold uppercase tracking-widest text-xs sm:text-sm">SECTORS &amp; APPLICATIONS</span>
+              <div className="h-[2px] w-8 sm:w-12 bg-[var(--brand-red)]"></div>
+            </div>
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-heading font-bold text-[#0b2545] uppercase tracking-wide mb-3">
               INDUSTRIES <span className="text-[var(--brand-red)]">WE SERVE</span>
             </h2>
-            <p className="text-gray-400 max-w-2xl mx-auto font-light">
-              Our precision components power the world's most demanding applications across a variety of crucial sectors.
+            <p className="text-gray-600 max-w-2xl mx-auto text-xs sm:text-sm font-light leading-relaxed">
+              Delivering high-quality fastening solutions across a wide range of industries, ensuring superior strength, durability, and reliable performance for every application.
             </p>
-          </motion.div>
+          </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8">
-            {[
-              { name: 'Automotive', icon: <Car className="w-8 h-8 text-white group-hover:text-white transition-colors" /> },
-              { name: 'Aerospace', icon: <Plane className="w-8 h-8 text-white group-hover:text-white transition-colors" /> },
-              { name: 'Energy', icon: <Zap className="w-8 h-8 text-white group-hover:text-white transition-colors" /> },
-              { name: 'Manufacturing', icon: <Factory className="w-8 h-8 text-white group-hover:text-white transition-colors" /> }
-            ].map((industry, i) => (
-              <motion.div 
-                key={industry.name}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-50px" }}
-                transition={{ delay: i * 0.1 }}
-                className="bg-white/5 border border-white/10 p-8 rounded-2xl text-center hover:bg-white/10 hover:-translate-y-2 transition-all duration-300 backdrop-blur-sm cursor-pointer group"
-              >
-                <div className="w-20 h-20 mx-auto bg-white/10 rounded-full flex items-center justify-center mb-6 group-hover:bg-[var(--brand-red)] group-hover:scale-110 transition-all duration-300">
-                  {industry.icon}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {industriesList.map((industry, idx) => {
+              const Icon = industry.icon;
+              const isFlipped = flippedIndustryIndex === idx;
+
+              return (
+                <motion.div
+                  key={industry.name}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: 0.05 * (idx % 4), duration: 0.4 }}
+                  className="group h-[280px] w-full flip-card-container cursor-pointer select-none"
+                  onClick={() => handleIndustryCardClick(idx)}
+                >
+                  <div className={`flip-card-inner rounded-2xl ${isFlipped ? 'is-flipped' : ''}`}>
+                    {/* Front */}
+                    <div className="flip-card-front bg-white rounded-2xl border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] flex flex-col items-center justify-center text-center p-6 sm:p-7">
+                      <div className="text-[var(--brand-red)] mb-3.5 bg-red-50/70 p-3.5 rounded-full group-hover:scale-110 transition-transform duration-300">
+                        <Icon className="w-7 h-7 sm:w-8 sm:h-8 stroke-[1.8]" />
+                      </div>
+                      <h3 className="text-[#0b2545] font-bold text-[14px] sm:text-[15px] uppercase tracking-wide font-['Oswald'] mb-2 px-1">
+                        {industry.name}
+                      </h3>
+                      <p className="text-xs sm:text-[13px] text-gray-500 leading-relaxed font-light max-w-[240px]">
+                        {industry.description}
+                      </p>
+                    </div>
+
+                    {/* Back */}
+                    <div className="flip-card-back bg-[#0b2545] rounded-2xl flex flex-col items-center justify-center text-center p-6 sm:p-7 border border-[#0b2545] shadow-[0_12px_36px_rgba(11,37,69,0.35)]">
+                      <div className="w-10 h-10 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center mb-3 text-[var(--brand-red)]">
+                        <Icon className="w-5 h-5 stroke-[2]" />
+                      </div>
+                      <h3 className="text-[var(--brand-red)] font-bold text-[14px] sm:text-[15px] mb-2 uppercase tracking-wide font-['Oswald'] px-1">
+                        {industry.name}
+                      </h3>
+                      <p className="text-xs sm:text-[13px] text-gray-300 leading-relaxed font-light mb-3 max-w-[240px]">
+                        {industry.backDescription}
+                      </p>
+                      <span className="text-[10px] uppercase font-bold tracking-widest text-red-400 bg-white/5 px-2.5 py-1 rounded-full border border-white/10">
+                        {industry.badge}
+                      </span>
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
+
+            {/* 24 Hours / Support & Animated Down Arrow in Empty Space */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.15, duration: 0.5 }}
+              onClick={() => {
+                const el = document.getElementById('products-section');
+                if (el) {
+                  el.scrollIntoView({ behavior: 'smooth' });
+                }
+              }}
+              className="col-span-1 sm:col-span-1 lg:col-span-2 xl:col-span-3 h-[280px] rounded-2xl bg-white border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] p-6 sm:p-8 flex flex-col md:flex-row items-center justify-between gap-6 cursor-pointer group transition-all duration-300 relative overflow-hidden select-none"
+            >
+              {/* Subtle ambient glow */}
+              <div className="absolute -top-10 -right-10 w-44 h-44 bg-red-500/5 rounded-full blur-2xl pointer-events-none group-hover:scale-125 transition-transform duration-500" />
+              <div className="absolute -bottom-10 -left-10 w-44 h-44 bg-[#0b2545]/5 rounded-full blur-2xl pointer-events-none" />
+
+              {/* Left: 24 Badge + Content */}
+              <div className="flex items-center gap-5 sm:gap-7 z-10 w-full md:w-auto">
+                <div className="relative shrink-0 flex flex-col items-center justify-center">
+                  <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-gradient-to-br from-[#0b2545] to-[#123866] text-white flex flex-col items-center justify-center shadow-[0_12px_30px_rgba(11,37,69,0.25)] group-hover:scale-105 transition-transform duration-300 border border-white/10">
+                    <span className="text-4xl sm:text-5xl font-extrabold font-heading tracking-tight leading-none text-white">
+                      24
+                    </span>
+                    <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-widest text-red-400 mt-1">
+                      HOURS
+                    </span>
+                  </div>
+                  <div className="absolute -bottom-2.5 px-3 py-0.5 rounded-full bg-[var(--brand-red)] text-white text-[9px] font-bold uppercase tracking-widest shadow-md">
+                    DISPATCH
+                  </div>
                 </div>
-                <h3 className="text-white font-bold tracking-wider uppercase text-sm">{industry.name}</h3>
-              </motion.div>
-            ))}
+
+                <div className="text-left min-w-0">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className="w-2 h-2 rounded-full bg-[var(--brand-red)] animate-pulse" />
+                    <span className="text-[11px] sm:text-xs font-bold uppercase tracking-widest text-[var(--brand-red)]">
+                      24/7 TECHNICAL ASSISTANCE &amp; DISPATCH
+                    </span>
+                  </div>
+                  <h3 className="text-base sm:text-xl font-bold font-['Oswald'] text-[#0b2545] uppercase tracking-wide leading-snug mb-1.5">
+                    READY TO DELIVER FASTENING SOLUTIONS
+                  </h3>
+                  <p className="text-xs sm:text-[13px] text-gray-500 font-light leading-relaxed max-w-md hidden sm:block">
+                    Dedicated inventory, 24-hour rapid dispatch, and tailored fastening consultation for all industrial sectors.
+                  </p>
+                </div>
+              </div>
+
+              {/* Right: Animated Down Arrow to Products */}
+              <div className="flex sm:flex-col items-center justify-center shrink-0 z-10 gap-3 sm:gap-2 sm:pr-4">
+                <span className="text-[11px] font-bold uppercase tracking-widest text-gray-400 group-hover:text-[var(--brand-red)] transition-colors">
+                  Explore Products
+                </span>
+                <motion.div
+                  animate={{ y: [0, 8, 0] }}
+                  transition={{ repeat: Infinity, duration: 1.4, ease: "easeInOut" }}
+                  className="w-12 h-12 rounded-full bg-red-50/80 border border-red-100 flex items-center justify-center text-[var(--brand-red)] group-hover:bg-[var(--brand-red)] group-hover:text-white transition-all duration-300 shadow-sm"
+                >
+                  <ArrowDown className="w-5 h-5 stroke-[2.2]" />
+                </motion.div>
+              </div>
+            </motion.div>
           </div>
         </div>
       </section>
 
-      
-      
+
+
       {/* Products Section */}
-      <section className="py-24 bg-white relative">
+      <section id="products-section" className="py-24 bg-white relative">
         <div className="absolute top-0 right-0 w-64 h-64 bg-[var(--brand-red)] opacity-5 rounded-full blur-3xl -z-10"></div>
         <div className="absolute bottom-0 left-0 w-96 h-96 bg-[var(--brand-blue)] opacity-5 rounded-full blur-3xl -z-10"></div>
-        
+
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: -20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-100px" }}
             transition={{ duration: 0.6 }}
-            className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-12 gap-4 sm:gap-0"
+            className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-12 gap-4 sm:gap-6"
           >
-            <h2 className="text-3xl font-heading font-bold text-[#0b2545] uppercase tracking-wide">
-              OUR <span className="text-[var(--brand-red)]">PRODUCTS</span>
-            </h2>
-            <Link to="/products" className="flex items-center text-[var(--brand-red)] font-bold text-sm hover:text-red-800 transition-colors group">
+            <div>
+              <h2 className="text-3xl sm:text-4xl font-heading font-bold text-[#0b2545] uppercase tracking-wide mb-2">
+                OUR <span className="text-[var(--brand-red)]">PRODUCTS</span>
+              </h2>
+              <p className="text-gray-600 text-xs sm:text-sm font-normal max-w-2xl leading-relaxed">
+                Explore our comprehensive range of premium fasteners, anchors and hardware solutions designed for strength, durability and reliable performance.
+              </p>
+            </div>
+            <Link to="/products" className="shrink-0 flex items-center text-[var(--brand-red)] font-bold text-sm hover:text-red-800 transition-colors group">
               View All Products <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
             </Link>
           </motion.div>
-          
-          {loading ? (
-            <div className="w-full py-10 flex justify-center">
-              <div className="w-8 h-8 border-4 border-gray-200 border-t-[var(--brand-red)] rounded-full animate-spin"></div>
-            </div>
-          ) : productsList.length === 0 ? (
-            <div className="w-full py-20 text-center text-gray-500 font-medium">
-              No products available at the moment.
-            </div>
-          ) : (
-            <motion.div 
-              variants={staggerContainer}
-              initial={skipAnimation ? "visible" : "hidden"}
-              whileInView="visible"
-              viewport={{ once: true, amount: 0.1 }}
-              className="flex flex-wrap justify-center gap-x-8 gap-y-12"
-            >
-              {productsList.slice(0, 5).map((p, idx) => (
-              <motion.div key={idx} variants={itemVariant} id={`product-${p._id}`}>
-                <motion.div 
-                  className="flex flex-col items-center group w-44 md:w-48 cursor-pointer"
-                  animate={{ y: [0, -8, 0] }}
-                  transition={{ 
-                    duration: 4, 
-                    repeat: Infinity, 
-                    ease: "easeInOut",
-                    delay: idx * 0.2 // Stagger the floating effect
-                  }}
-                >
-                  <Link 
-                    to={`/products/${p._id}`} 
-                    state={{ fromHome: true }}
-                    onClick={() => sessionStorage.setItem('homeScrollTarget', `product-${p._id}`)}
-                    className="relative w-40 h-40 md:w-44 md:h-44 flex items-center justify-center hover:-translate-y-2 transition-transform duration-300"
-                  >
-                    <svg className="absolute inset-0 w-full h-full text-[var(--brand-red)] drop-shadow-sm" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M100 5C125 5 135 15 155 25C175 35 195 55 195 100C195 145 175 165 155 175C135 185 125 195 100 195C75 195 65 185 45 175C25 165 5 145 5 100C5 55 25 35 45 25C65 15 75 5 100 5Z" stroke="currentColor" strokeWidth="4" fill="white" />
-                    </svg>
-                    <img src={resolveProductImage(p)} alt={p.name} className="w-24 h-24 md:w-28 md:h-28 object-contain relative z-10 mix-blend-multiply group-hover:scale-110 transition-transform duration-300" loading="lazy" decoding="async" />
-                  </Link>
-                  <Link 
-                    to={`/products/${p._id}`}
-                    state={{ fromHome: true }}
-                    onClick={() => sessionStorage.setItem('homeScrollTarget', `product-${p._id}`)}
-                  >
-                    <h3 className="text-center font-bold text-[#0b2545] mt-4 text-sm md:text-[15px] px-2 group-hover:text-[var(--brand-red)] transition-colors">{p.name}</h3>
-                  </Link>
-                </motion.div>
-              </motion.div>
-              ))}
-            </motion.div>
-          )}
         </div>
-      </section>
 
-      {/* Client/Brand Presentation Section */}
-      <section className="py-20 md:py-24 bg-white border-t border-gray-100 overflow-hidden relative">
-        <div className="w-full text-center relative z-0">
-          <h2 className="text-xs md:text-sm font-bold text-[#0b2545] uppercase tracking-widest mb-12">
-            Trusted By Global Brands &amp; Partners
-          </h2>
-          
-          {(() => {
-            const brandLogos = [
-              { img: logo4, name: 'Vanguard Motors' },
-              { img: logo5, name: 'Prime Engineering' },
-              { img: logo1, name: 'Apex Industrial' },
-              { img: logo2, name: 'Nexus Manufacturing' },
-              { img: logo3, name: 'Titan Aerospace' }
-            ];
-            // Repeat 3 times per half for over 4,500px of content, ensuring continuous flow on all screens
-            const marqueeList = [...brandLogos, ...brandLogos, ...brandLogos];
+        {loading ? (
+          <div className="flex justify-center gap-8 py-10">
+            {[1, 2, 3, 4, 5].map((n) => (
+              <div key={n} className="flex flex-col items-center w-44 md:w-52 animate-pulse">
+                <div className="w-40 h-40 md:w-48 md:h-48 rounded-2xl bg-gray-100 border border-gray-200/80 mb-4"></div>
+                <div className="h-4 bg-gray-200 rounded w-28"></div>
+              </div>
+            ))}
+          </div>
+        ) : productsList.length === 0 ? (
+          <div className="w-full py-20 text-center text-gray-500 font-medium">
+            No products available at the moment.
+          </div>
+        ) : (
+          (() => {
+            const getMarqueeProducts = (list) => {
+              if (!list || list.length === 0) return [];
+              let items = [...list];
+              while (items.length < 8) {
+                items = [...items, ...list];
+              }
+              return items;
+            };
+            const marqueeProducts = getMarqueeProducts(productsList);
 
             return (
-              <div className="marquee-container py-4">
-                <div className="marquee-track">
-                  {/* First Track Half */}
-                  <div className="flex items-center shrink-0 gap-16 md:gap-24 pr-16 md:pr-24">
-                    {marqueeList.map((brand, idx) => (
-                      <div 
-                        key={`brand-a-${idx}`} 
-                        className="flex items-center justify-center w-52 md:w-64 h-24 md:h-28 shrink-0 cursor-pointer group"
-                        title={brand.name}
-                      >
-                        <img 
-                          src={brand.img} 
-                          alt={brand.name} 
-                          className="max-w-full max-h-full object-contain scale-140 md:scale-155 group-hover:scale-160 md:group-hover:scale-175 transition-transform duration-300 select-none pointer-events-none drop-shadow-xs" 
-                          loading="lazy" 
-                          decoding="async" 
-                        />
-                      </div>
-                    ))}
-                  </div>
+              <div className="w-full overflow-hidden relative py-2">
+                <div className="marquee-container py-6">
+                  <div className="marquee-track">
+                    {/* First Track Half */}
+                    <div className="flex items-center shrink-0 gap-8 sm:gap-12 md:gap-14 pr-8 sm:pr-12 md:pr-14">
+                      {marqueeProducts.map((p, idx) => (
+                        <div
+                          key={`prod-a-${idx}-${p._id}`}
+                          id={`product-${p._id}`}
+                          className="flex flex-col items-center group w-44 md:w-52 shrink-0 cursor-pointer"
+                        >
+                          <Link
+                            to={`/products/${p._id}`}
+                            state={{ fromHome: true }}
+                            onClick={() => sessionStorage.setItem('homeScrollTarget', `product-${p._id}`)}
+                            className="hover:-translate-y-2.5 transition-transform duration-300 block"
+                          >
+                            <ProductImage
+                              src={resolveProductImage(p)}
+                              alt={p.name}
+                              size="md"
+                              hoverZoom={true}
+                            />
+                          </Link>
+                          <Link
+                            to={`/products/${p._id}`}
+                            state={{ fromHome: true }}
+                            onClick={() => sessionStorage.setItem('homeScrollTarget', `product-${p._id}`)}
+                            className="w-full text-center"
+                          >
+                            <h3 className="font-bold text-[#0b2545] mt-4 text-sm md:text-[15px] px-2 group-hover:text-[var(--brand-red)] transition-colors line-clamp-2">
+                              {p.name}
+                            </h3>
+                          </Link>
+                        </div>
+                      ))}
+                    </div>
 
-                  {/* Second Track Half (Exact clone for 100% seamless infinite loop) */}
-                  <div className="flex items-center shrink-0 gap-16 md:gap-24 pr-16 md:pr-24" aria-hidden="true">
-                    {marqueeList.map((brand, idx) => (
-                      <div 
-                        key={`brand-b-${idx}`} 
-                        className="flex items-center justify-center w-52 md:w-64 h-24 md:h-28 shrink-0 cursor-pointer group"
-                        title={brand.name}
-                      >
-                        <img 
-                          src={brand.img} 
-                          alt={brand.name} 
-                          className="max-w-full max-h-full object-contain scale-140 md:scale-155 group-hover:scale-160 md:group-hover:scale-175 transition-transform duration-300 select-none pointer-events-none drop-shadow-xs" 
-                          loading="lazy" 
-                          decoding="async" 
-                        />
-                      </div>
-                    ))}
+                    {/* Second Track Half (Exact clone for 100% seamless infinite loop) */}
+                    <div className="flex items-center shrink-0 gap-8 sm:gap-12 md:gap-14 pr-8 sm:pr-12 md:pr-14" aria-hidden="true">
+                      {marqueeProducts.map((p, idx) => (
+                        <div
+                          key={`prod-b-${idx}-${p._id}`}
+                          className="flex flex-col items-center group w-44 md:w-52 shrink-0 cursor-pointer"
+                        >
+                          <Link
+                            to={`/products/${p._id}`}
+                            state={{ fromHome: true }}
+                            onClick={() => sessionStorage.setItem('homeScrollTarget', `product-${p._id}`)}
+                            className="hover:-translate-y-2.5 transition-transform duration-300 block"
+                          >
+                            <ProductImage
+                              src={resolveProductImage(p)}
+                              alt={p.name}
+                              size="md"
+                              hoverZoom={true}
+                            />
+                          </Link>
+                          <Link
+                            to={`/products/${p._id}`}
+                            state={{ fromHome: true }}
+                            onClick={() => sessionStorage.setItem('homeScrollTarget', `product-${p._id}`)}
+                            className="w-full text-center"
+                          >
+                            <h3 className="font-bold text-[#0b2545] mt-4 text-sm md:text-[15px] px-2 group-hover:text-[var(--brand-red)] transition-colors line-clamp-2">
+                              {p.name}
+                            </h3>
+                          </Link>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
             );
-          })()}
-        </div>
+          })()
+        )}
       </section>
     </>
   );

@@ -2,9 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, ArrowRight, Download } from 'lucide-react';
 import { Link, useParams, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { getProducts, getProductById, getImageUrl, getPreloadedProducts } from '../api/api';
-import { resolveProductImage, parseProductContent, getFallbackProduct } from '../data/productDataHelper';
-import { initialProducts } from '../data/catalogSnapshot';
+import { getProducts, getProductById, getCachedProductById, getImageUrl } from '../api/api';
+import { resolveProductImage, parseProductContent } from '../data/productDataHelper';
 import { ProductImage } from '../components/ProductImage';
 
 export const ProductDetails = () => {
@@ -25,94 +24,117 @@ export const ProductDetails = () => {
     return '/products';
   }, [returnCategory, returnSubCategory]);
 
-  // Lookup from preloaded dynamic cache first, then fallback to catalog
-  const getImmediateProduct = (targetId) => {
-    const preloaded = getPreloadedProducts();
-    const match = preloaded.find(p => p._id === targetId || p.sku === targetId);
-    if (match) return match;
-    return initialProducts.find(p => p._id === targetId || p.sku === targetId) || getFallbackProduct(targetId);
-  };
+  const [product, setProduct] = useState(null);
+  const [relatedProducts, setRelatedProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [mainImg, setMainImg] = useState('');
 
-  const initialMatch = getImmediateProduct(id);
-  const [product, setProduct] = useState(initialMatch || null);
-  const [relatedProducts, setRelatedProducts] = useState(() => {
-    const preloaded = getPreloadedProducts();
-    return preloaded.filter(p => p._id !== id).slice(0, 4);
-  });
-  const [loading, setLoading] = useState(!initialMatch);
-  const [mainImg, setMainImg] = useState(initialMatch ? resolveProductImage(initialMatch) : '');
+  // Primary image & gallery images computed at top level (Rules of Hooks)
+  const primaryResolved = resolveProductImage(product);
+
+  const galleryImages = React.useMemo(() => {
+    if (!product) return [];
+
+    // Support multiple possible backend field names: gallery, galleryImages, images
+    const rawGallery = Array.isArray(product.gallery)
+      ? product.gallery
+      : (Array.isArray(product.galleryImages)
+        ? product.galleryImages
+        : (Array.isArray(product.images) ? product.images : []));
+
+    const resolvedList = [];
+    const seen = new Set();
+
+    // Primary image is first in gallery
+    if (primaryResolved) {
+      resolvedList.push(primaryResolved);
+      seen.add(primaryResolved);
+    }
+
+    rawGallery.forEach((img) => {
+      if (!img) return;
+      let url = '';
+      if (typeof img === 'string') {
+        url = getImageUrl(img);
+      } else if (typeof img === 'object') {
+        url = getImageUrl(img.url || img.path || img.secure_url || img.src || '');
+      }
+      if (url && !seen.has(url)) {
+        resolvedList.push(url);
+        seen.add(url);
+      }
+    });
+
+    return resolvedList;
+  }, [product, primaryResolved]);
 
   useEffect(() => {
     let isMounted = true;
 
-    // Immediately synchronize to dynamic cache on id change for instantaneous transition
-    const immediateMatch = getImmediateProduct(id);
-    if (immediateMatch) {
-      setProduct(immediateMatch);
-      setMainImg(resolveProductImage(immediateMatch));
-      const curCat = immediateMatch.category?.name || immediateMatch.category;
-      const preloaded = getPreloadedProducts();
-      let rel = preloaded.filter(p => p._id !== id);
-      if (curCat) {
-        const sameCat = rel.filter(p => (p.category?.name || p.category) === curCat);
-        if (sameCat.length > 0) rel = sameCat;
-      }
-      setRelatedProducts(rel.slice(0, 4));
+    // Check preview / cached data for instantaneous initial display
+    const cached = getCachedProductById(id);
+    if (cached?.data) {
+      setProduct(cached.data);
+      const resImg = resolveProductImage(cached.data);
+      setMainImg(resImg);
       setLoading(false);
     } else {
       setLoading(true);
+      setProduct(null);
+      setMainImg('');
     }
 
     const fetchData = async () => {
       try {
-        // Fetch current product
-        const json = await getProductById(id, true);
+        // Fetch full product details (including complete gallery from server)
+        const json = await getProductById(id, false);
         if (isMounted) {
           if (json.success && json.data) {
             setProduct(json.data);
             const resolvedImg = resolveProductImage(json.data);
-            setMainImg(resolvedImg);
-          } else {
-            const fallback = getFallbackProduct(id);
-            if (fallback) {
-              setProduct(fallback);
-              setMainImg(resolveProductImage(fallback));
-            }
+            setMainImg(prev => (prev ? prev : resolvedImg));
+          } else if (!cached?.data) {
+            setProduct(null);
+            setMainImg('');
           }
         }
 
-        // Fetch related products
-        const allProductsJson = await getProducts(true);
-        if (isMounted && allProductsJson.success && allProductsJson.data) {
-          const currentCat = json.data?.category?.name || product?.category?.name;
+        // Fetch related products from live server / shared cache
+        const allProductsJson = await getProducts(false);
+        if (isMounted && allProductsJson.success && Array.isArray(allProductsJson.data)) {
+          const currentCat = json?.data?.category?.name || json?.data?.category || cached?.data?.category?.name || cached?.data?.category;
           let related = allProductsJson.data.filter(p => p._id !== id);
           if (currentCat) {
             const sameCat = related.filter(p => (p.category?.name || p.category) === currentCat);
             if (sameCat.length > 0) related = sameCat;
           }
           setRelatedProducts(related.slice(0, 4));
+        } else if (isMounted) {
+          setRelatedProducts([]);
         }
       } catch (error) {
-        console.warn('Failed to fetch product data from server:', error);
-        if (isMounted && !product) {
-          const fallback = getFallbackProduct(id);
-          if (fallback) {
-            setProduct(fallback);
-            setMainImg(resolveProductImage(fallback));
-          }
+        console.error('Failed to fetch product data from server:', error);
+        if (isMounted && !cached?.data) {
+          setProduct(null);
+          setMainImg('');
+          setRelatedProducts([]);
         }
       } finally {
         if (isMounted) setLoading(false);
       }
     };
+
     if (id) {
       fetchData();
+    } else {
+      setLoading(false);
     }
 
     const handleProductDetailsUpdated = (e) => {
       if (isMounted && e.detail && (e.detail._id === id || e.detail.sku === id)) {
         setProduct(e.detail);
-        setMainImg(resolveProductImage(e.detail));
+        const resolved = resolveProductImage(e.detail);
+        setMainImg(prev => (prev ? prev : resolved));
       }
     };
 
@@ -120,8 +142,12 @@ export const ProductDetails = () => {
       if (isMounted && Array.isArray(e.detail)) {
         const found = e.detail.find(p => p._id === id || p.sku === id);
         if (found) {
-          setProduct(found);
-          setMainImg(resolveProductImage(found));
+          setProduct(prev => {
+            if (prev?.gallery && prev.gallery.length > 0) {
+              return { ...found, gallery: prev.gallery };
+            }
+            return found;
+          });
         }
       }
     };
@@ -136,12 +162,31 @@ export const ProductDetails = () => {
     };
   }, [id]);
 
-  if (loading) {
+  if (loading && !product) {
     return (
-      <div className="bg-white min-h-screen flex items-center justify-center pt-24">
-        <div className="flex flex-col items-center">
-          <div className="w-10 h-10 border-4 border-gray-200 border-t-[#e53524] rounded-full animate-spin mb-4"></div>
-          <p className="text-gray-500 font-medium text-sm">Loading product details...</p>
+      <div className="bg-white min-h-screen pt-28 pb-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 animate-pulse">
+          <div className="h-4 bg-gray-200 rounded w-48 mb-8"></div>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14">
+            <div className="lg:col-span-5 flex justify-center">
+              <div className="w-72 h-72 sm:w-88 sm:h-88 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center">
+                <div className="w-48 h-48 rounded-full bg-gray-200/60"></div>
+              </div>
+            </div>
+            <div className="lg:col-span-7 space-y-4">
+              <div className="h-8 bg-gray-200 rounded w-3/4"></div>
+              <div className="h-4 bg-gray-100 rounded w-1/3"></div>
+              <div className="space-y-2 pt-6">
+                <div className="h-4 bg-gray-100 rounded w-full"></div>
+                <div className="h-4 bg-gray-100 rounded w-5/6"></div>
+                <div className="h-4 bg-gray-100 rounded w-4/6"></div>
+              </div>
+              <div className="pt-8 flex gap-4">
+                <div className="h-12 bg-gray-200 rounded-xl w-40"></div>
+                <div className="h-12 bg-gray-100 rounded-xl w-32"></div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -164,13 +209,6 @@ export const ProductDetails = () => {
 
   // Parse structured description, features, applications matching the reference image layout
   const { description, features, applications } = parseProductContent(product);
-
-  // Gallery images including mainImage
-  const primaryResolved = resolveProductImage(product);
-  const galleryImages = [
-    primaryResolved,
-    ...(product.gallery || []).map(img => getImageUrl(img))
-  ].filter(Boolean);
 
   // Valid specifications
   const specs = product.specifications || {};
@@ -339,20 +377,32 @@ export const ProductDetails = () => {
 
             {/* Gallery Thumbnails */}
             {galleryImages.length > 1 && (
-              <div className="flex flex-wrap gap-3 mt-6 justify-center max-w-md">
-                {galleryImages.map((img, idx) => (
-                  <button 
-                    key={idx} 
-                    onClick={() => setMainImg(img)}
-                    className={`w-14 h-14 rounded-full border-2 p-1 overflow-hidden transition-all duration-300 ${
-                      mainImg === img 
-                        ? 'border-[#e62020] shadow-md scale-105 ring-2 ring-red-100' 
-                        : 'border-gray-200 hover:border-gray-400 bg-white'
-                    }`}
-                  >
-                    <img src={img} alt="" className="w-full h-full object-contain" />
-                  </button>
-                ))}
+              <div className="flex flex-wrap gap-2.5 sm:gap-3 mt-5 sm:mt-6 justify-center max-w-md px-2">
+                {galleryImages.map((img, idx) => {
+                  const isSelected = (mainImg || primaryResolved) === img;
+                  return (
+                    <button 
+                      key={idx} 
+                      type="button"
+                      onClick={() => setMainImg(img)}
+                      className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full border-2 p-1 overflow-hidden transition-all duration-200 cursor-pointer bg-white shrink-0 shadow-sm ${
+                        isSelected 
+                          ? 'border-[var(--brand-red)] shadow-md scale-105 ring-2 ring-red-100' 
+                          : 'border-gray-200 hover:border-gray-400 opacity-80 hover:opacity-100 hover:scale-102'
+                      }`}
+                      aria-label={`View product image ${idx + 1}`}
+                    >
+                      <img 
+                        src={img} 
+                        alt="" 
+                        className="w-full h-full object-contain pointer-events-none"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                        }}
+                      />
+                    </button>
+                  );
+                })}
               </div>
             )}
           </motion.div>

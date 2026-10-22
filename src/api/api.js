@@ -1,316 +1,436 @@
-import { initialProducts, initialCategories, initialSubCategories } from '../data/catalogSnapshot';
-
-export const API_URL = import.meta.env.VITE_API_URL || 'https://eagle-engineering-server.onrender.com/api';
+export const API_URL = import.meta.env.VITE_API_URL || 'https://eagle-engineering-server-dzor.onrender.com/api';
 
 export const getImageUrl = (imagePath) => {
   if (!imagePath) return '';
   if (imagePath.startsWith('http') || imagePath.startsWith('data:') || imagePath.startsWith('/products')) return imagePath;
-  const baseUrl = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : 'https://eagle-engineering-server.onrender.com';
+  const baseUrl = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : 'https://eagle-engineering-server-dzor.onrender.com';
   return `${baseUrl}${imagePath}`;
 };
 
-export const productSuffixToImage = {
-  "ec9bb8": "/products/zinc_fasteners_ec9bb8.png",
-  "ec9d97": "/products/csk_head_screws_ec9d97.png",
-  "0a6224": "/products/pan_head_screws_0a6224.png",
-  "0a6277": "/products/truss_button_head_screws_0a6277.png",
-  "1a5b61": "/products/frame_fixing_screws_1a5b61.jpg",
-  "1a5b9d": "/products/wedge_anchors_1a5b9d.png",
-  "1a5bd2": "/products/chipboard_screws_1a5bd2.png",
-  "1a5c07": "/products/drywall_screws_1a5c07.png",
-  "1a5c55": "/products/cutting_wheels_1a5c55.png",
-  "1a5c93": "/products/grinding_wheels_1a5c93.png",
-  "1a5d2b": "/products/silicon_sealent_1a5d2b.png",
-  "1a5d50": "/products/mastic_butyl_tape_1a5d50.png",
-  "1a5d6f": "/products/mesh_roll_1a5d6f.png",
-  "1a5d8e": "/products/socket_1a5d8e.png",
-  "1a5d95": "/products/star_bit_1a5d95.png",
-  "1a5de0": "/products/screw_cap_1a5de0.png",
-  "1a5dfd": "/products/screw_cap_1a5dfd.png",
-  "1a5e3b": "/products/glass_frame_packer_1a5e3b.png",
-  "1a5e66": "/products/glass_frame_packer_1a5e66.png",
-  "1a5e6d": "/products/casement_packer_1a5e6d.png",
-  "1a5e74": "/products/2_profile_packer_1a5e74.png",
-  "1a5e7b": "/products/2_5_profile_packer_1a5e7b.png",
-  "1a5e82": "/products/3_profile_packer_1a5e82.png",
-  "1a5e95": "/products/bump_stopper_1a5e95.png",
-  "1a5e9f": "/products/bump_stopper_1a5e9f.png",
-  "1a5ea6": "/products/bump_stopper_1a5ea6.png",
-  "1a5ead": "/products/louvers_1a5ead.png",
-  "1a5eb4": "/products/louvers_1a5eb4.png",
-  "1a5ebb": "/products/louvers_1a5ebb.png",
-  "1a5ece": "/products/adjustable_louvers_1a5ece.png",
-  "1a5ed5": "/products/jump_arrester_1a5ed5.png",
-  "1a5edc": "/products/spacer_block_plastic_1a5edc.png",
-  "1a5ee3": "/products/spacer_block_rubber_1a5ee3.png",
-  "1a5eea": "/products/pvc_bump_stopper_small_1a5eea.png",
-  "1a5ef1": "/products/pvc_bump_stopper_big_1a5ef1.png",
-  "1a5ef8": "/products/anti_lift_small_1a5ef8.png",
-  "1a5f0b": "/products/anti_lift_small_1a5f0b.png",
-  "1a5f18": "/products/anti_lift_small_1a5f18.png",
-  "1a5f1f": "/products/anti_lift_small_1a5f1f.png",
-  "1a5f26": "/products/anti_lift_rehau_1a5f26.png",
-  "1a5f2d": "/products/anti_lift_rehau_1a5f2d.png",
-  "1a5f34": "/products/anti_lift_lhs_and_rhs_1a5f34.png",
-  "1a5f3b": "/products/anti_lift_outer_frame_big_1a5f3b.png",
-  "1a5f43": "/products/casement_wedge_big_1a5f43.png",
-  "1a5f4a": "/products/cavity_block_1a5f4a.png",
-  "1a5f51": "/products/nylon_anchor_1a5f51.png",
-  "1a5f64": "/products/mechanical_joint_sliding_1a5f64.png",
-  "1a5f9c": "/products/16mm_single_roller_flat_and_groove_1a5f9c.jpg",
-  "1a5fd9": "/products/double_wheel_roller_1a5fd9.jpg",
-  "1a5fe0": "/products/double_well_udjustable_roller_1a5fe0.jpg",
-  "1a5fe7": "/products/mesh_roller_1a5fe7.jpg"
-};
-
-// Helper to sanitize incoming server products - preserves dynamic admin images
+// Helper to sanitize incoming server products
 const sanitizeProducts = (products) => {
   if (!Array.isArray(products)) return [];
-  return products.map(p => {
-    let mainImg = p.mainImage || p.image || p.imageUrl || '';
-    // Only fallback to productSuffixToImage if no image exists in database
-    if (!mainImg && p._id) {
-      const suffix = String(p._id).slice(-6).toLowerCase();
-      if (productSuffixToImage[suffix]) {
-        mainImg = productSuffixToImage[suffix];
-      }
-    }
-    return {
-      ...p,
-      mainImage: mainImg || ''
-    };
-  });
+  return products.map(p => ({
+    ...p,
+    mainImage: p.mainImage || p.image || p.imageUrl || ''
+  }));
 };
 
 export const getPreloadedProducts = () => {
-  try {
-    const cached = localStorage.getItem('eagle_cached_products');
-    if (cached) {
-      const parsed = JSON.parse(cached);
-      if (Array.isArray(parsed) && parsed.length > 0) return sanitizeProducts(parsed);
-    }
-  } catch (e) {}
-  return sanitizeProducts(initialProducts);
+  return [];
 };
 
-// In-memory caches pre-seeded with latest known products
-let productsCache = { success: true, data: getPreloadedProducts() };
-let categoriesCache = { success: true, data: initialCategories };
-let subCategoriesCache = { success: true, data: initialSubCategories };
+// ==========================================
+// Session-Level Real-Data Cache & In-Flight Request Deduplication
+// ==========================================
+const SESSION_CACHE_TTL = 3 * 60 * 1000; // 3 minutes fresh TTL
+
+const readSessionCache = (key) => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = sessionStorage.getItem(key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed && Array.isArray(parsed.data) && parsed.data.length > 0) {
+      return parsed;
+    }
+  } catch {}
+  return null;
+};
+
+const writeSessionCache = (key, data) => {
+  if (typeof window === 'undefined') return;
+  try {
+    sessionStorage.setItem(key, JSON.stringify({
+      data,
+      timestamp: Date.now()
+    }));
+  } catch {}
+};
+
+// In-memory runtime caches
+let productsCache = null;
+let productsCacheTime = 0;
+
+let categoriesCache = null;
+let categoriesCacheTime = 0;
+
+let subCategoriesCache = null;
+let subCategoriesCacheTime = 0;
+
 const productDetailsCache = {};
 
-// Seed details cache
-getPreloadedProducts().forEach(p => {
-  productDetailsCache[p._id] = { success: true, data: p };
-});
+// Active in-flight promises to eliminate duplicate concurrent requests
+const inFlightRequests = {
+  products: null,
+  categories: null,
+  subCategories: null,
+  productById: {}
+};
 
+// ==========================================
+// Products API with Request Deduplication & Stale-While-Revalidate
+// ==========================================
 export const getProducts = async (forceRefresh = false) => {
-  if (productsCache && !forceRefresh) {
-    // Return instant preloaded cache, but trigger background refresh
-    fetchFreshProducts().catch(() => {});
+  const now = Date.now();
+
+  // 1. Check in-memory cache if not forcing refresh
+  if (!forceRefresh && productsCache && (now - productsCacheTime < SESSION_CACHE_TTL)) {
     return productsCache;
   }
-  return await fetchFreshProducts();
+
+  // 2. Check session storage cache
+  if (!forceRefresh) {
+    const sessionData = readSessionCache('eagle_live_products_v2');
+    if (sessionData) {
+      const isFresh = (now - sessionData.timestamp) < SESSION_CACHE_TTL;
+      productsCache = { success: true, data: sessionData.data };
+      productsCacheTime = sessionData.timestamp;
+
+      // Seed details cache (flagged as preview until full details fetched)
+      sessionData.data.forEach(p => {
+        if (p._id && !productDetailsCache[p._id]?.hasFullDetails) {
+          productDetailsCache[p._id] = { success: true, data: p, hasFullDetails: false, timestamp: sessionData.timestamp };
+        }
+      });
+
+      if (isFresh) {
+        return productsCache;
+      }
+      // If stale, return cached live data immediately, then revalidate in background
+      fetchFreshProducts().catch(() => {});
+      return productsCache;
+    }
+  }
+
+  // 3. Return active in-flight request if one is already pending
+  if (inFlightRequests.products) {
+    return inFlightRequests.products;
+  }
+
+  return await fetchFreshProducts(forceRefresh);
 };
 
 export const getFreshProducts = async () => {
-  return await fetchFreshProducts();
+  return await fetchFreshProducts(true);
 };
 
-const fetchFreshProducts = async () => {
-  try {
-    const response = await fetch(`${API_URL}/products?_t=${Date.now()}`, {
-      headers: {
-        'Accept': 'application/json'
-      },
-      signal: AbortSignal.timeout(25000)
-    });
-    if (!response.ok) throw new Error(`HTTP error ${response.status}`);
-    const data = await response.json();
-    if (data.success && Array.isArray(data.data) && data.data.length > 0) {
-      const sanitized = sanitizeProducts(data.data);
-      productsCache = { success: true, data: sanitized };
-      sanitized.forEach(p => {
-        productDetailsCache[p._id] = { success: true, data: p };
-      });
-      try {
-        localStorage.setItem('eagle_cached_products', JSON.stringify(sanitized));
-      } catch (e) {}
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('eagle_products_updated', { detail: sanitized }));
-      }
-      return productsCache;
-    }
-    return productsCache || { success: true, data: initialProducts };
-  } catch (error) {
-    console.warn('API fetch products error, using snapshot/cached data:', error);
-    return productsCache || { success: true, data: initialProducts };
+const fetchFreshProducts = (forceRefresh = false) => {
+  if (inFlightRequests.products) {
+    return inFlightRequests.products;
   }
+
+  inFlightRequests.products = (async () => {
+    try {
+      const url = forceRefresh ? `${API_URL}/products?_t=${Date.now()}` : `${API_URL}/products`;
+      const response = await fetch(url, {
+        headers: {
+          'Accept': 'application/json'
+        },
+        signal: AbortSignal.timeout(35000)
+      });
+      if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+      const data = await response.json();
+      if (data.success && Array.isArray(data.data)) {
+        const sanitized = sanitizeProducts(data.data);
+        const result = { success: true, data: sanitized };
+        productsCache = result;
+        productsCacheTime = Date.now();
+        writeSessionCache('eagle_live_products_v2', sanitized);
+
+        sanitized.forEach(p => {
+          if (p._id && !productDetailsCache[p._id]?.hasFullDetails) {
+            productDetailsCache[p._id] = { success: true, data: p, hasFullDetails: false, timestamp: Date.now() };
+          }
+        });
+
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('eagle_products_updated', { detail: sanitized }));
+        }
+        return result;
+      }
+      return { success: false, data: [] };
+    } catch (error) {
+      console.error('API fetch products error:', error);
+      // Fallback to active cache if network drops
+      if (productsCache?.data?.length) return productsCache;
+      const sessionData = readSessionCache('eagle_live_products_v2');
+      if (sessionData?.data?.length) {
+        return { success: true, data: sessionData.data };
+      }
+      return { success: false, data: [] };
+    } finally {
+      inFlightRequests.products = null;
+    }
+  })();
+
+  return inFlightRequests.products;
+};
+
+// ==========================================
+// Product Details with Instant Lookup + Revalidate
+// ==========================================
+export const getCachedProductById = (id) => {
+  if (!id) return null;
+  if (productDetailsCache[id]) return productDetailsCache[id];
+  if (productsCache?.data) {
+    const match = productsCache.data.find(p => p._id === id || p.sku === id);
+    if (match) return { success: true, data: match, hasFullDetails: false };
+  }
+  const sessionData = readSessionCache('eagle_live_products_v2');
+  if (sessionData?.data) {
+    const match = sessionData.data.find(p => p._id === id || p.sku === id);
+    if (match) return { success: true, data: match, hasFullDetails: false };
+  }
+  return null;
 };
 
 export const getProductById = async (id, forceRefresh = false) => {
-  if (forceRefresh) {
-    return await fetchFreshProductById(id);
+  if (!id) return { success: false, data: null };
+
+  const now = Date.now();
+  const cached = productDetailsCache[id];
+
+  // 1. If cache already has full details (including gallery) and is fresh, return immediately
+  if (!forceRefresh && cached?.hasFullDetails && (now - (cached.timestamp || 0) < SESSION_CACHE_TTL)) {
+    return cached;
   }
-  if (productDetailsCache[id]) {
-    fetchFreshProductById(id).catch(() => {});
-    return productDetailsCache[id];
+
+  // 2. Return active in-flight request if one is already pending
+  if (inFlightRequests.productById[id]) {
+    return inFlightRequests.productById[id];
   }
-  const preloaded = getPreloadedProducts();
-  const preMatch = preloaded.find(p => p._id === id || p.sku === id);
-  if (preMatch) {
-    productDetailsCache[id] = { success: true, data: preMatch };
-    fetchFreshProductById(id).catch(() => {});
-    return productDetailsCache[id];
-  }
-  const match = initialProducts.find(p => p._id === id || p.sku === id);
-  if (match) {
-    productDetailsCache[id] = { success: true, data: match };
-    fetchFreshProductById(id).catch(() => {});
-    return productDetailsCache[id];
-  }
-  return await fetchFreshProductById(id);
+
+  return await fetchFreshProductById(id, forceRefresh);
 };
 
-const fetchFreshProductById = async (id) => {
-  try {
-    const response = await fetch(`${API_URL}/products/${id}?_t=${Date.now()}`, {
-      headers: {
-        'Accept': 'application/json'
-      },
-      signal: AbortSignal.timeout(15000)
-    });
-    if (!response.ok) throw new Error(`HTTP error ${response.status}`);
-    const data = await response.json();
-    if (data.success && data.data) {
-      const p = data.data;
-      productDetailsCache[id] = data;
+const fetchFreshProductById = (id, forceRefresh = false) => {
+  if (inFlightRequests.productById[id]) {
+    return inFlightRequests.productById[id];
+  }
 
-      // Also update in productsCache if present
-      if (productsCache?.data && Array.isArray(productsCache.data)) {
-        const idx = productsCache.data.findIndex(item => item._id === id || item.sku === id);
-        if (idx !== -1) {
-          productsCache.data[idx] = { ...productsCache.data[idx], ...p };
-          try {
-            localStorage.setItem('eagle_cached_products', JSON.stringify(productsCache.data));
-          } catch (e) {}
+  inFlightRequests.productById[id] = (async () => {
+    try {
+      const url = forceRefresh ? `${API_URL}/products/${id}?_t=${Date.now()}` : `${API_URL}/products/${id}`;
+      const response = await fetch(url, {
+        headers: {
+          'Accept': 'application/json'
+        },
+        signal: AbortSignal.timeout(20000)
+      });
+      if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+      const data = await response.json();
+      if (data.success && data.data) {
+        const p = data.data;
+        const result = { success: true, data: p, hasFullDetails: true, timestamp: Date.now() };
+        productDetailsCache[id] = result;
+
+        if (productsCache?.data && Array.isArray(productsCache.data)) {
+          const idx = productsCache.data.findIndex(item => item._id === id || item.sku === id);
+          if (idx !== -1) {
+            productsCache.data[idx] = { ...productsCache.data[idx], ...p };
+          }
         }
-      }
 
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('eagle_product_details_updated', { detail: p }));
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('eagle_product_details_updated', { detail: p }));
+        }
+        return result;
       }
-      return data;
+      return { success: false, data: null };
+    } catch (error) {
+      console.error(`Error fetching product ${id}:`, error);
+      if (productDetailsCache[id]) return productDetailsCache[id];
+      return { success: false, data: null };
+    } finally {
+      delete inFlightRequests.productById[id];
     }
-  } catch (error) {
-    console.warn(`Error fetching product ${id}:`, error);
-  }
-  return productDetailsCache[id] || { success: false, data: null };
+  })();
+
+  return inFlightRequests.productById[id];
 };
 
+// ==========================================
+// Categories API with Request Deduplication
+// ==========================================
 export const getCategories = async (forceRefresh = false) => {
-  if (categoriesCache && !forceRefresh) {
-    fetchFreshCategories().catch(() => {});
+  const now = Date.now();
+
+  if (!forceRefresh && categoriesCache && (now - categoriesCacheTime < SESSION_CACHE_TTL)) {
     return categoriesCache;
   }
-  return await fetchFreshCategories();
-};
 
-const fetchFreshCategories = async () => {
-  try {
-    const response = await fetch(`${API_URL}/categories?_t=${Date.now()}`, {
-      headers: {
-        'Accept': 'application/json'
-      },
-      signal: AbortSignal.timeout(15000)
-    });
-    if (!response.ok) throw new Error(`HTTP error ${response.status}`);
-    const data = await response.json();
-    if (data.success && Array.isArray(data.data) && data.data.length > 0) {
-      categoriesCache = data;
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('eagle_categories_updated', { detail: data.data }));
-      }
-      return data;
+  if (!forceRefresh) {
+    const sessionData = readSessionCache('eagle_live_categories_v2');
+    if (sessionData) {
+      const isFresh = (now - sessionData.timestamp) < SESSION_CACHE_TTL;
+      categoriesCache = { success: true, data: sessionData.data };
+      categoriesCacheTime = sessionData.timestamp;
+      if (isFresh) return categoriesCache;
+      fetchFreshCategories().catch(() => {});
+      return categoriesCache;
     }
-  } catch (error) {
-    console.warn('Error fetching categories from API, using cached:', error);
   }
-  return categoriesCache || { success: true, data: initialCategories };
+
+  if (inFlightRequests.categories) {
+    return inFlightRequests.categories;
+  }
+
+  return await fetchFreshCategories(forceRefresh);
 };
 
+const fetchFreshCategories = (forceRefresh = false) => {
+  if (inFlightRequests.categories) {
+    return inFlightRequests.categories;
+  }
+
+  inFlightRequests.categories = (async () => {
+    try {
+      const url = forceRefresh ? `${API_URL}/categories?_t=${Date.now()}` : `${API_URL}/categories`;
+      const response = await fetch(url, {
+        headers: {
+          'Accept': 'application/json'
+        },
+        signal: AbortSignal.timeout(20000)
+      });
+      if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+      const data = await response.json();
+      if (data.success && Array.isArray(data.data)) {
+        categoriesCache = data;
+        categoriesCacheTime = Date.now();
+        writeSessionCache('eagle_live_categories_v2', data.data);
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('eagle_categories_updated', { detail: data.data }));
+        }
+        return data;
+      }
+      return { success: false, data: [] };
+    } catch (error) {
+      console.error('Error fetching categories from API:', error);
+      if (categoriesCache?.data?.length) return categoriesCache;
+      const sessionData = readSessionCache('eagle_live_categories_v2');
+      if (sessionData?.data?.length) return { success: true, data: sessionData.data };
+      return { success: false, data: [] };
+    } finally {
+      inFlightRequests.categories = null;
+    }
+  })();
+
+  return inFlightRequests.categories;
+};
+
+// ==========================================
+// SubCategories API with Request Deduplication
+// ==========================================
 export const getSubCategories = async (forceRefresh = false) => {
-  if (subCategoriesCache && !forceRefresh) {
-    fetchFreshSubCategories().catch(() => {});
+  const now = Date.now();
+
+  if (!forceRefresh && subCategoriesCache && (now - subCategoriesCacheTime < SESSION_CACHE_TTL)) {
     return subCategoriesCache;
   }
-  return await fetchFreshSubCategories();
-};
 
-const fetchFreshSubCategories = async () => {
-  try {
-    const response = await fetch(`${API_URL}/sub-categories?_t=${Date.now()}`, {
-      headers: {
-        'Accept': 'application/json'
-      },
-      signal: AbortSignal.timeout(15000)
-    });
-    if (!response.ok) throw new Error(`HTTP error ${response.status}`);
-    const data = await response.json();
-    if (data.success && Array.isArray(data.data) && data.data.length > 0) {
-      subCategoriesCache = data;
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('eagle_subcategories_updated', { detail: data.data }));
-      }
-      return data;
+  if (!forceRefresh) {
+    const sessionData = readSessionCache('eagle_live_subcategories_v2');
+    if (sessionData) {
+      const isFresh = (now - sessionData.timestamp) < SESSION_CACHE_TTL;
+      subCategoriesCache = { success: true, data: sessionData.data };
+      subCategoriesCacheTime = sessionData.timestamp;
+      if (isFresh) return subCategoriesCache;
+      fetchFreshSubCategories().catch(() => {});
+      return subCategoriesCache;
     }
-  } catch (error) {
-    console.warn('Error fetching subcategories from API, using cached:', error);
   }
-  return subCategoriesCache || { success: true, data: initialSubCategories };
+
+  if (inFlightRequests.subCategories) {
+    return inFlightRequests.subCategories;
+  }
+
+  return await fetchFreshSubCategories(forceRefresh);
 };
 
-// Real-time synchronization: active heartbeat polling, tab focus, and cross-tab BroadcastChannel
+const fetchFreshSubCategories = (forceRefresh = false) => {
+  if (inFlightRequests.subCategories) {
+    return inFlightRequests.subCategories;
+  }
+
+  inFlightRequests.subCategories = (async () => {
+    try {
+      const url = forceRefresh ? `${API_URL}/sub-categories?_t=${Date.now()}` : `${API_URL}/sub-categories`;
+      const response = await fetch(url, {
+        headers: {
+          'Accept': 'application/json'
+        },
+        signal: AbortSignal.timeout(20000)
+      });
+      if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+      const data = await response.json();
+      if (data.success && Array.isArray(data.data)) {
+        subCategoriesCache = data;
+        subCategoriesCacheTime = Date.now();
+        writeSessionCache('eagle_live_subcategories_v2', data.data);
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('eagle_subcategories_updated', { detail: data.data }));
+        }
+        return data;
+      }
+      return { success: false, data: [] };
+    } catch (error) {
+      console.error('Error fetching subcategories from API:', error);
+      if (subCategoriesCache?.data?.length) return subCategoriesCache;
+      const sessionData = readSessionCache('eagle_live_subcategories_v2');
+      if (sessionData?.data?.length) return { success: true, data: sessionData.data };
+      return { success: false, data: [] };
+    } finally {
+      inFlightRequests.subCategories = null;
+    }
+  })();
+
+  return inFlightRequests.subCategories;
+};
+
+// ==========================================
+// Efficient Real-Time Synchronization (Focus & Cross-Tab, No Server Bombardment)
+// ==========================================
 if (typeof window !== 'undefined') {
   let lastSync = 0;
   let isSyncing = false;
 
-  const syncAll = async () => {
+  const syncAll = async (force = false) => {
     const now = Date.now();
-    if (isSyncing || now - lastSync < 2000) return; // 2s throttle
+    // Only revalidate if more than 30s passed since last sync
+    if (isSyncing || (!force && now - lastSync < 30000)) return;
     isSyncing = true;
     lastSync = now;
     try {
       await Promise.allSettled([
-        fetchFreshProducts(),
-        fetchFreshCategories(),
-        fetchFreshSubCategories()
+        fetchFreshProducts(force),
+        fetchFreshCategories(force),
+        fetchFreshSubCategories(force)
       ]);
     } finally {
       isSyncing = false;
     }
   };
 
-  // Immediate revalidation on tab focus and window visibility change
-  window.addEventListener('focus', syncAll);
+  // Revalidate when user switches back to tab
+  window.addEventListener('focus', () => syncAll(false));
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
-      syncAll();
+      syncAll(false);
     }
   });
 
-  // Active heartbeat: poll every 10 seconds while the website tab is open
-  setInterval(() => {
-    if (document.visibilityState === 'visible') {
-      syncAll();
-    }
-  }, 10000);
-
-  // Cross-tab real-time sync channel
+  // Cross-tab real-time sync channel from admin panel
   try {
     const syncChannel = new BroadcastChannel('eagle_sync_channel');
-    syncChannel.onmessage = () => syncAll();
-  } catch (e) {}
+    syncChannel.onmessage = () => {
+      // Admin made changes: invalidate local session cache and force fresh fetch
+      sessionStorage.removeItem('eagle_live_products_v2');
+      sessionStorage.removeItem('eagle_live_categories_v2');
+      sessionStorage.removeItem('eagle_live_subcategories_v2');
+      syncAll(true);
+    };
+  } catch {}
 }
 
 export const createInquiry = async (inquiryData) => {
@@ -341,11 +461,7 @@ export const defaultContactSettings = {
 
 export const getSettings = async () => {
   try {
-    // Check cached settings
-    const cached = localStorage.getItem('eagle_settings');
-    let fallback = cached ? JSON.parse(cached) : defaultContactSettings;
-
-    const response = await fetch(`${API_URL}/settings?_t=${Date.now()}`, {
+    const response = await fetch(`${API_URL}/settings`, {
       headers: { 'Accept': 'application/json' },
       signal: AbortSignal.timeout(10000)
     });
@@ -361,15 +477,10 @@ export const getSettings = async () => {
         email: res.data.email || defaultContactSettings.email,
         address: res.data.address || defaultContactSettings.address
       };
-      try {
-        localStorage.setItem('eagle_settings', JSON.stringify(data));
-      } catch (e) {}
       return { success: true, data };
     }
-    return { success: true, data: fallback };
+    return { success: false, data: defaultContactSettings };
   } catch (error) {
-    const cached = localStorage.getItem('eagle_settings');
-    const data = cached ? JSON.parse(cached) : defaultContactSettings;
-    return { success: true, data };
+    return { success: false, data: defaultContactSettings };
   }
 };
