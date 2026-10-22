@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { MapPin, Phone, PhoneCall, Mail, Clock, ChevronRight } from 'lucide-react';
+import { MapPin, Phone, Mail, Clock, ChevronRight } from 'lucide-react';
+import { LandlineIcon } from './LandlineIcon';
 
 export const Footer = () => {
   const location = useLocation();
@@ -86,7 +87,7 @@ export const Footer = () => {
               </li>
               <li className="flex items-center space-x-3.5 text-sm text-gray-300 font-normal group">
                 <div className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0 group-hover:bg-[var(--brand-red)] group-hover:border-[var(--brand-red)] transition-all duration-300 shadow-sm">
-                  <PhoneCall className="w-4 h-4 text-[var(--brand-red)] group-hover:text-white transition-colors" />
+                  <LandlineIcon className="w-4 h-4 text-[var(--brand-red)] group-hover:text-white transition-colors" />
                 </div>
                 <a href="tel:+918079667629" className="hover:text-[var(--brand-red)] text-gray-300 transition-colors font-medium">
                   +91 80-7966 7629

@@ -127,7 +127,7 @@ const fetchFreshProducts = (forceRefresh = false) => {
         headers: {
           'Accept': 'application/json'
         },
-        signal: AbortSignal.timeout(35000)
+        signal: AbortSignal.timeout(60000)
       });
       if (!response.ok) throw new Error(`HTTP error ${response.status}`);
       const data = await response.json();

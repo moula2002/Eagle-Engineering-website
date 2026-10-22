@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Phone, Mail, MapPin, Printer, Building2 } from 'lucide-react';
+import { Phone, Mail, MapPin, Building2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useLocation } from 'react-router-dom';
 import { createInquiry, getSettings, defaultContactSettings } from '../api/api';
 import { ProductImage } from '../components/ProductImage';
+import { LandlineIcon } from '../components/LandlineIcon';
 
 export const Contact = () => {
   const location = useLocation();
@@ -97,7 +98,7 @@ export const Contact = () => {
               {/* 2. Landline / Office Number */}
               <div className="flex items-start group">
                 <div className="flex-shrink-0 w-14 h-14 bg-white border border-gray-100 flex items-center justify-center rounded-2xl shadow-sm group-hover:bg-[var(--brand-red)] group-hover:text-white transition-colors duration-300">
-                  <Printer className="w-6 h-6 text-[var(--brand-red)] group-hover:text-white transition-colors" />
+                  <LandlineIcon className="w-6 h-6 text-[var(--brand-red)] group-hover:text-white transition-colors" />
                 </div>
                 <div className="ml-6 flex flex-col items-start">
                   <h4 className="text-[16px] font-bold text-[#0b2545] mb-1">Landline / Office Number</h4>

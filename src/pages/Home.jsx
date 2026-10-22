@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Hero } from '../components/Hero';
+import { WhyChooseUs } from '../components/WhyChooseUs';
 import {
   ArrowRight,
   Factory,
@@ -26,10 +27,25 @@ import { getProducts, getImageUrl } from '../api/api';
 import { resolveProductImage } from '../data/productDataHelper';
 import { ProductImage } from '../components/ProductImage';
 
+import indPebSteel from '../assets/industries/ind_peb_steel.jpg';
+import indRoofingCladding from '../assets/industries/ind_roofing_cladding.jpg';
+import indElevatorsLifts from '../assets/industries/ind_elevators_lifts.jpg';
+import indUpvcWindows from '../assets/industries/ind_upvc_windows.jpg';
+import indFurnitureWoodworking from '../assets/industries/ind_furniture_woodworking.jpg';
+import indInteriorDrywall from '../assets/industries/ind_interior_drywall.jpg';
+import indIndustrialMfg from '../assets/industries/ind_industrial_mfg.jpg';
+import indConstructionInfra from '../assets/industries/ind_construction_infra.jpg';
+import indSolarEnergy from '../assets/industries/ind_solar_energy.jpg';
+import indFacadeCurtain from '../assets/industries/ind_facade_curtain.jpg';
+import indWarehouseSheds from '../assets/industries/ind_warehouse_sheds.jpg';
+import indCommercialBldg from '../assets/industries/ind_commercial_bldg.jpg';
+import indHvacMep from '../assets/industries/ind_hvac_mep.jpg';
+
 const industriesList = [
   {
     name: 'PEB & STEEL CONSTRUCTION',
     icon: HardHat,
+    image: indPebSteel,
     description: 'High-tensile structural fasteners and heavy anchor bolts engineered for PEB frameworks.',
     backDescription: 'Structural grade 8.8/10.9 bolts, heavy wedge anchors, and self-drilling screws for steel erections.',
     badge: 'Heavy Structural'
@@ -37,6 +53,7 @@ const industriesList = [
   {
     name: 'ROOFING & CLADDING',
     icon: Layers,
+    image: indRoofingCladding,
     description: 'Self-drilling screws with EPDM washers engineered for leak-proof metal roof installations.',
     backDescription: 'Hex head tek screws, vulcanized washers, and lap stitch screws with corrosion-resistant coatings.',
     badge: 'Weatherproof Seal'
@@ -44,6 +61,7 @@ const industriesList = [
   {
     name: 'ELEVATORS, ESCALATORS & LIFTS',
     icon: ArrowUpDown,
+    image: indElevatorsLifts,
     description: 'Vibration-proof dynamic fasteners and anchors calibrated for passenger transport safety.',
     backDescription: 'Guide rail anchors, counterweight bolts, and high-tensile locking fasteners resisting dynamic fatigue.',
     badge: 'Zero Vibration'
@@ -51,6 +69,7 @@ const industriesList = [
   {
     name: 'uPVC DOORS & WINDOWS',
     icon: DoorClosed,
+    image: indUpvcWindows,
     description: 'Specialized reinforcement and hardware fixing screws designed for multi-chamber profiles.',
     backDescription: 'Steel reinforcement screws, friction stay fixings, and flush countersunk self-tapping screws.',
     badge: 'Fenestration Fixings'
@@ -58,6 +77,7 @@ const industriesList = [
   {
     name: 'FURNITURE & WOODWORKING',
     icon: Hammer,
+    image: indFurnitureWoodworking,
     description: 'Deep-thread chipboard and confirmat screws providing strong grip without wood splitting.',
     backDescription: 'Yellow zinc chipboard screws, cabinet assembly hardware, and flush drywall screws for woodwork.',
     badge: 'Deep Thread Grip'
@@ -65,6 +85,7 @@ const industriesList = [
   {
     name: 'INTERIOR & DRYWALL',
     icon: LayoutGrid,
+    image: indInteriorDrywall,
     description: 'Black phosphate bugle head screws and rapid ceiling anchors for partition wall systems.',
     backDescription: 'Fast-driving drywall screws, drop-in ceiling anchors, and toggle bolts for gypsum partitions.',
     badge: 'Acoustic & Drywall'
@@ -72,6 +93,7 @@ const industriesList = [
   {
     name: 'INDUSTRIAL & MANUFACTURING',
     icon: Factory,
+    image: indIndustrialMfg,
     description: 'Certified DIN/ISO standard machine screws and bolts for assembly lines and plant machinery.',
     backDescription: 'Hex socket head cap screws, metric machine bolts, flange nuts, and industrial spring washers.',
     badge: 'DIN / ISO Certified'
@@ -79,6 +101,7 @@ const industriesList = [
   {
     name: 'CONSTRUCTION & INFRASTRUCTURE',
     icon: Building2,
+    image: indConstructionInfra,
     description: 'Heavy-duty chemical and mechanical through-bolts for concrete and civil engineering works.',
     backDescription: 'Chemical anchor rods, foundation bolts, and structural through-bolts for bridges and infrastructure.',
     badge: 'Seismic Rated'
@@ -86,6 +109,7 @@ const industriesList = [
   {
     name: 'SOLAR & RENEWABLE ENERGY',
     icon: Sun,
+    image: indSolarEnergy,
     description: 'Marine-grade stainless steel hardware and bi-metal screws resisting outdoor UV and salt spray.',
     backDescription: 'SS 304/316 solar mounting bolts, rail clamps, and weather-resistant rooftop fixing screws.',
     badge: 'Corrosion Proof'
@@ -93,6 +117,7 @@ const industriesList = [
   {
     name: 'FACADE & CURTAIN WALL SYSTEMS',
     icon: ShieldCheck,
+    image: indFacadeCurtain,
     description: 'Architectural fasteners engineered to withstand extreme wind shear and thermal building movement.',
     backDescription: 'Bi-metal facade screws, undercut anchors, and isolation fixings for glass and ACP cladding.',
     badge: 'Wind Shear Rated'
@@ -100,6 +125,7 @@ const industriesList = [
   {
     name: 'WAREHOUSING & INDUSTRIAL SHEDS',
     icon: Warehouse,
+    image: indWarehouseSheds,
     description: 'Heavy base-plate anchors and purlin fasteners for high-bay racking and logistics facilities.',
     backDescription: 'Expansion floor anchors, bracing hardware, and portal frame fasteners for high-capacity racking.',
     badge: 'High Load Bearing'
@@ -107,6 +133,7 @@ const industriesList = [
   {
     name: 'COMMERCIAL & RESIDENTIAL BUILDINGS',
     icon: Building,
+    image: indCommercialBldg,
     description: 'Comprehensive range of multi-substrate fixing screws and masonry anchors for modern buildings.',
     backDescription: 'Frame fixings, multi-purpose screws, and nylon wall plugs supporting MEP and architectural fit-outs.',
     badge: 'Universal Fixings'
@@ -114,6 +141,7 @@ const industriesList = [
   {
     name: 'HVAC & MEP INSTALLATIONS',
     icon: Wind,
+    image: indHvacMep,
     description: 'Continuously threaded rods, beam clamps, and duct screws for secure overhead suspensions.',
     backDescription: 'M6-M24 threaded rods, channel strut nuts, and drop-in anchors for ventilation and piping routes.',
     badge: 'Fire & Load Rated'
@@ -205,7 +233,7 @@ export const Home = () => {
       <Hero />
 
       {/* About Us Preview Section */}
-      <section className="py-24 bg-gray-50/50 relative overflow-hidden bg-dot-pattern">
+      <section className="py-24 bg-white relative overflow-hidden bg-dot-pattern border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="flex flex-col lg:flex-row gap-16 items-center">
             <motion.div
@@ -273,6 +301,9 @@ export const Home = () => {
         </div>
       </section>
 
+      {/* Why Choose Us Section */}
+      <WhyChooseUs />
+
       {/* Industries Section */}
       <section id="industries" className="bg-gray-50 pb-20 pt-16 sm:pb-24 sm:pt-20 relative z-20 bg-industrial-pattern border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -310,8 +341,13 @@ export const Home = () => {
                   <div className={`flip-card-inner rounded-2xl ${isFlipped ? 'is-flipped' : ''}`}>
                     {/* Front */}
                     <div className="flip-card-front bg-white rounded-2xl border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] flex flex-col items-center justify-center text-center p-6 sm:p-7">
-                      <div className="text-[var(--brand-red)] mb-3.5 bg-red-50/70 p-3.5 rounded-full group-hover:scale-110 transition-transform duration-300">
-                        <Icon className="w-7 h-7 sm:w-8 sm:h-8 stroke-[1.8]" />
+                      <div className="relative mb-3.5 w-16 h-16 sm:w-18 sm:h-18 rounded-2xl overflow-hidden shadow-xs border border-slate-200/90 group-hover:border-[var(--brand-red)] group-hover:scale-105 transition-all duration-300 shrink-0 bg-slate-50">
+                        <img 
+                          src={industry.image} 
+                          alt={industry.name} 
+                          className="w-full h-full object-cover select-none" 
+                          loading="lazy" 
+                        />
                       </div>
                       <h3 className="text-[#0b2545] font-bold text-[14px] sm:text-[15px] uppercase tracking-wide font-['Oswald'] mb-2 px-1">
                         {industry.name}
@@ -323,8 +359,13 @@ export const Home = () => {
 
                     {/* Back */}
                     <div className="flip-card-back bg-[#0b2545] rounded-2xl flex flex-col items-center justify-center text-center p-6 sm:p-7 border border-[#0b2545] shadow-[0_12px_36px_rgba(11,37,69,0.35)]">
-                      <div className="w-10 h-10 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center mb-3 text-[var(--brand-red)]">
-                        <Icon className="w-5 h-5 stroke-[2]" />
+                      <div className="w-11 h-11 rounded-xl overflow-hidden border border-red-500/40 mb-3 shrink-0 shadow-xs">
+                        <img 
+                          src={industry.image} 
+                          alt={industry.name} 
+                          className="w-full h-full object-cover select-none" 
+                          loading="lazy" 
+                        />
                       </div>
                       <h3 className="text-[var(--brand-red)] font-bold text-[14px] sm:text-[15px] mb-2 uppercase tracking-wide font-['Oswald'] px-1">
                         {industry.name}
@@ -341,68 +382,46 @@ export const Home = () => {
               );
             })}
 
-            {/* 24 Hours / Support & Animated Down Arrow in Empty Space */}
+            {/* 24 Card with 24 BG Watermark (Content Removed as Requested) */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ delay: 0.15, duration: 0.5 }}
+              transition={{ delay: 0.1, duration: 0.5 }}
               onClick={() => {
                 const el = document.getElementById('products-section');
                 if (el) {
                   el.scrollIntoView({ behavior: 'smooth' });
                 }
               }}
-              className="col-span-1 sm:col-span-1 lg:col-span-2 xl:col-span-3 h-[280px] rounded-2xl bg-white border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] p-6 sm:p-8 flex flex-col md:flex-row items-center justify-between gap-6 cursor-pointer group transition-all duration-300 relative overflow-hidden select-none"
+              className="col-span-1 sm:col-span-1 lg:col-span-3 h-[280px] rounded-2xl bg-white border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] flex items-center justify-center sm:justify-end pr-0 sm:pr-12 md:pr-20 cursor-pointer group transition-all duration-300 relative overflow-hidden select-none"
             >
-              {/* Subtle ambient glow */}
-              <div className="absolute -top-10 -right-10 w-44 h-44 bg-red-500/5 rounded-full blur-2xl pointer-events-none group-hover:scale-125 transition-transform duration-500" />
+              {/* Ambient background glows */}
+              <div className="absolute -top-12 -right-12 w-48 h-48 bg-red-500/5 rounded-full blur-2xl pointer-events-none group-hover:scale-125 transition-transform duration-500" />
               <div className="absolute -bottom-10 -left-10 w-44 h-44 bg-[#0b2545]/5 rounded-full blur-2xl pointer-events-none" />
 
-              {/* Left: 24 Badge + Content */}
-              <div className="flex items-center gap-5 sm:gap-7 z-10 w-full md:w-auto">
-                <div className="relative shrink-0 flex flex-col items-center justify-center">
-                  <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-gradient-to-br from-[#0b2545] to-[#123866] text-white flex flex-col items-center justify-center shadow-[0_12px_30px_rgba(11,37,69,0.25)] group-hover:scale-105 transition-transform duration-300 border border-white/10">
-                    <span className="text-4xl sm:text-5xl font-extrabold font-heading tracking-tight leading-none text-white">
-                      24
-                    </span>
-                    <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-widest text-red-400 mt-1">
-                      HOURS
-                    </span>
-                  </div>
-                  <div className="absolute -bottom-2.5 px-3 py-0.5 rounded-full bg-[var(--brand-red)] text-white text-[9px] font-bold uppercase tracking-widest shadow-md">
-                    DISPATCH
-                  </div>
+              {/* Right Side Corner Container for 24 Watermark & Action */}
+              <div className="relative flex items-center justify-center w-64 sm:w-72 md:w-80 h-full">
+                {/* Giant 24 Number BG Watermark */}
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none z-0">
+                  <span className="text-[170px] sm:text-[220px] md:text-[250px] font-black font-['Oswald'] text-slate-200/80 group-hover:text-red-100/70 leading-none tracking-tighter select-none transition-all duration-500 block group-hover:scale-105">
+                    24
+                  </span>
                 </div>
 
-                <div className="text-left min-w-0">
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <span className="w-2 h-2 rounded-full bg-[var(--brand-red)] animate-pulse" />
-                    <span className="text-[11px] sm:text-xs font-bold uppercase tracking-widest text-[var(--brand-red)]">
-                      24/7 TECHNICAL ASSISTANCE &amp; DISPATCH
-                    </span>
-                  </div>
-                  <h3 className="text-base sm:text-xl font-bold font-['Oswald'] text-[#0b2545] uppercase tracking-wide leading-snug mb-1.5">
-                    READY TO DELIVER FASTENING SOLUTIONS
-                  </h3>
-                  <p className="text-xs sm:text-[13px] text-gray-500 font-light leading-relaxed max-w-md hidden sm:block">
-                    Dedicated inventory, 24-hour rapid dispatch, and tailored fastening consultation for all industrial sectors.
-                  </p>
+                {/* Minimal Foreground Action */}
+                <div className="relative z-10 flex flex-col items-center justify-center text-center">
+                  <span className="text-xs sm:text-sm font-bold uppercase tracking-widest text-gray-400 group-hover:text-[var(--brand-red)] transition-colors mb-2">
+                    Explore Products
+                  </span>
+                  <motion.div
+                    animate={{ y: [0, 6, 0] }}
+                    transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
+                    className="w-11 h-11 rounded-full bg-white border border-slate-200/90 shadow-sm flex items-center justify-center text-gray-400 group-hover:text-white group-hover:bg-[var(--brand-red)] group-hover:border-[var(--brand-red)] transition-all duration-300"
+                  >
+                    <ArrowDown className="w-5 h-5 stroke-[2.2]" />
+                  </motion.div>
                 </div>
-              </div>
-
-              {/* Right: Animated Down Arrow to Products */}
-              <div className="flex sm:flex-col items-center justify-center shrink-0 z-10 gap-3 sm:gap-2 sm:pr-4">
-                <span className="text-[11px] font-bold uppercase tracking-widest text-gray-400 group-hover:text-[var(--brand-red)] transition-colors">
-                  Explore Products
-                </span>
-                <motion.div
-                  animate={{ y: [0, 8, 0] }}
-                  transition={{ repeat: Infinity, duration: 1.4, ease: "easeInOut" }}
-                  className="w-12 h-12 rounded-full bg-red-50/80 border border-red-100 flex items-center justify-center text-[var(--brand-red)] group-hover:bg-[var(--brand-red)] group-hover:text-white transition-all duration-300 shadow-sm"
-                >
-                  <ArrowDown className="w-5 h-5 stroke-[2.2]" />
-                </motion.div>
               </div>
             </motion.div>
           </div>
