@@ -189,7 +189,7 @@ export const resolveProductImage = (product) => {
 
     // Backend uploads from admin panel (/uploads/...)
     if (trimmed.startsWith('/uploads')) {
-      const baseUrl = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : 'https://eagle-engineering-server-dzor.onrender.com';
+      const baseUrl = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : 'https://eagle-engineering-server-15wn.onrender.com';
       return `${baseUrl}${trimmed}`;
     }
 
