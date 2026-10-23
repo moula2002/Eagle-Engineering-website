@@ -335,113 +335,6 @@ export const Home = () => {
       {/* Why Choose Us Section */}
       <WhyChooseUs />
 
-      {/* Industries Section */}
-      <section id="industries" className="bg-gray-50 pb-6 pt-16 sm:pb-8 sm:pt-20 relative z-20 bg-industrial-pattern border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-
-          {/* Section Heading */}
-          <div className="text-center mb-12 sm:mb-14">
-            <div className="flex items-center justify-center gap-3 mb-2.5">
-              <div className="h-[2px] w-8 sm:w-12 bg-[var(--brand-red)]"></div>
-              <span className="text-[var(--brand-red)] font-bold uppercase tracking-widest text-xs sm:text-sm">SECTORS &amp; APPLICATIONS</span>
-              <div className="h-[2px] w-8 sm:w-12 bg-[var(--brand-red)]"></div>
-            </div>
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-heading font-bold text-[#0b2545] uppercase tracking-wide mb-3">
-              INDUSTRIES <span className="text-[var(--brand-red)]">WE SERVE</span>
-            </h2>
-            <p className="text-gray-600 max-w-2xl mx-auto text-xs sm:text-sm font-light leading-relaxed">
-              Delivering high-quality fastening solutions across a wide range of industries, ensuring superior strength, durability, and reliable performance for every application.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {industriesList.map((industry, idx) => {
-              const Icon = industry.icon;
-              const isFlipped = flippedIndustryIndex === idx;
-
-              return (
-                <motion.div
-                  key={industry.name}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: 0.05 * (idx % 4), duration: 0.4 }}
-                  className="group h-[310px] sm:h-[320px] w-full flip-card-container cursor-pointer select-none"
-                  onClick={() => handleIndustryCardClick(idx)}
-                >
-                  <div className={`flip-card-inner rounded-3xl ${isFlipped ? 'is-flipped' : ''}`}>
-                    {/* Front */}
-                    <div className="flip-card-front bg-white rounded-3xl border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] flex flex-col items-center justify-center text-center p-6 sm:p-7">
-                      <div className="relative mb-4 w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden shadow-xs shrink-0 bg-slate-50">
-                        <img 
-                          src={industry.image} 
-                          alt={industry.name} 
-                          className="w-full h-full object-cover select-none" 
-                          loading="lazy" 
-                        />
-                      </div>
-                      <h3 className="text-[#0b2545] font-bold text-[14px] sm:text-[15px] uppercase tracking-wide font-['Oswald'] mb-2 px-1">
-                        {industry.name}
-                      </h3>
-                      <p className="text-xs sm:text-[13px] text-gray-500 leading-relaxed font-light max-w-[240px]">
-                        {industry.description}
-                      </p>
-                    </div>
-
-                    {/* Back */}
-                    <div className="flip-card-back bg-[#0b2545] rounded-3xl flex flex-col items-center justify-center text-center p-6 sm:p-7 border border-[#0b2545] shadow-[0_12px_36px_rgba(11,37,69,0.35)]">
-                      <div className="w-14 h-14 rounded-2xl overflow-hidden border border-red-500/40 mb-3 shrink-0 shadow-xs">
-                        <img 
-                          src={industry.image} 
-                          alt={industry.name} 
-                          className="w-full h-full object-cover select-none" 
-                          loading="lazy" 
-                        />
-                      </div>
-                      <h3 className="text-[var(--brand-red)] font-bold text-[14px] sm:text-[15px] mb-2 uppercase tracking-wide font-['Oswald'] px-1">
-                        {industry.name}
-                      </h3>
-                      <p className="text-xs sm:text-[13px] text-gray-300 leading-relaxed font-light mb-3 max-w-[240px]">
-                        {industry.backDescription}
-                      </p>
-                      <span className="text-[10px] uppercase font-bold tracking-widest text-red-400 bg-white/5 px-2.5 py-1 rounded-full border border-white/10">
-                        {industry.badge}
-                      </span>
-                    </div>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
-
-          {/* 24 Watermark on Right Side (Compact Height) */}
-          <div className="mt-2 sm:mt-3 relative flex items-center justify-end overflow-hidden py-1 px-2 sm:px-6">
-            <div
-              onClick={() => {
-                const el = document.getElementById('products-section');
-                if (el) el.scrollIntoView({ behavior: 'smooth' });
-              }}
-              className="relative flex items-center justify-center cursor-pointer group select-none pr-0 sm:pr-4"
-              title="Click to explore products"
-            >
-              {/* Compact 24 Number BG Watermark */}
-              <span className="text-[65px] sm:text-[80px] md:text-[95px] font-black font-['Oswald'] text-slate-300/80 group-hover:text-red-200/80 leading-none tracking-tighter select-none transition-all duration-300 block group-hover:scale-105">
-                24
-              </span>
-              
-              {/* Minimal Text Overlay */}
-              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <span className="text-[8px] sm:text-[9px] font-bold uppercase tracking-wider text-slate-500 group-hover:text-[var(--brand-red)] transition-colors mt-0.5 font-['Oswald']">
-                  HOURS RAPID DISPATCH
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-
-
       {/* Products Section */}
       <section id="products-section" className="py-24 bg-white relative">
         <div className="absolute top-0 right-0 w-64 h-64 bg-[var(--brand-red)] opacity-5 rounded-full blur-3xl -z-10"></div>
@@ -572,6 +465,111 @@ export const Home = () => {
             );
           })()
         )}
+      </section>
+
+      {/* Industries Section */}
+      <section id="industries" className="bg-gray-50 pb-6 pt-16 sm:pb-8 sm:pt-20 relative z-20 bg-industrial-pattern border-b border-gray-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+          {/* Section Heading */}
+          <div className="text-center mb-12 sm:mb-14">
+            <div className="flex items-center justify-center gap-3 mb-2.5">
+              <div className="h-[2px] w-8 sm:w-12 bg-[var(--brand-red)]"></div>
+              <span className="text-[var(--brand-red)] font-bold uppercase tracking-widest text-xs sm:text-sm">SECTORS &amp; APPLICATIONS</span>
+              <div className="h-[2px] w-8 sm:w-12 bg-[var(--brand-red)]"></div>
+            </div>
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-heading font-bold text-[#0b2545] uppercase tracking-wide mb-3">
+              INDUSTRIES <span className="text-[var(--brand-red)]">WE SERVE</span>
+            </h2>
+            <p className="text-gray-600 max-w-2xl mx-auto text-xs sm:text-sm font-light leading-relaxed">
+              Delivering high-quality fastening solutions across a wide range of industries, ensuring superior strength, durability, and reliable performance for every application.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {industriesList.map((industry, idx) => {
+              const Icon = industry.icon;
+              const isFlipped = flippedIndustryIndex === idx;
+
+              return (
+                <motion.div
+                  key={industry.name}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: 0.05 * (idx % 4), duration: 0.4 }}
+                  className="group h-[310px] sm:h-[320px] w-full flip-card-container cursor-pointer select-none"
+                  onClick={() => handleIndustryCardClick(idx)}
+                >
+                  <div className={`flip-card-inner rounded-3xl ${isFlipped ? 'is-flipped' : ''}`}>
+                    {/* Front */}
+                    <div className="flip-card-front bg-white rounded-3xl border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] flex flex-col items-center justify-center text-center p-6 sm:p-7">
+                      <div className="relative mb-4 w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden shadow-xs shrink-0 bg-slate-50">
+                        <img 
+                          src={industry.image} 
+                          alt={industry.name} 
+                          className="w-full h-full object-cover select-none" 
+                          loading="lazy" 
+                        />
+                      </div>
+                      <h3 className="text-[#0b2545] font-bold text-[14px] sm:text-[15px] uppercase tracking-wide font-['Oswald'] mb-2 px-1">
+                        {industry.name}
+                      </h3>
+                      <p className="text-xs sm:text-[13px] text-gray-500 leading-relaxed font-light max-w-[240px]">
+                        {industry.description}
+                      </p>
+                    </div>
+
+                    {/* Back */}
+                    <div className="flip-card-back bg-[#0b2545] rounded-3xl flex flex-col items-center justify-center text-center p-6 sm:p-7 border border-[#0b2545] shadow-[0_12px_36px_rgba(11,37,69,0.35)]">
+                      <div className="w-14 h-14 rounded-2xl overflow-hidden border border-red-500/40 mb-3 shrink-0 shadow-xs">
+                        <img 
+                          src={industry.image} 
+                          alt={industry.name} 
+                          className="w-full h-full object-cover select-none" 
+                          loading="lazy" 
+                        />
+                      </div>
+                      <h3 className="text-[var(--brand-red)] font-bold text-[14px] sm:text-[15px] mb-2 uppercase tracking-wide font-['Oswald'] px-1">
+                        {industry.name}
+                      </h3>
+                      <p className="text-xs sm:text-[13px] text-gray-300 leading-relaxed font-light mb-3 max-w-[240px]">
+                        {industry.backDescription}
+                      </p>
+                      <span className="text-[10px] uppercase font-bold tracking-widest text-red-400 bg-white/5 px-2.5 py-1 rounded-full border border-white/10">
+                        {industry.badge}
+                      </span>
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+
+          {/* 24 Watermark on Right Side (Compact Height) */}
+          <div className="mt-2 sm:mt-3 relative flex items-center justify-end overflow-hidden py-1 px-2 sm:px-6">
+            <div
+              onClick={() => {
+                const el = document.getElementById('products-section');
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="relative flex items-center justify-center cursor-pointer group select-none pr-0 sm:pr-4"
+              title="Click to explore products"
+            >
+              {/* Compact 24 Number BG Watermark */}
+              <span className="text-[65px] sm:text-[80px] md:text-[95px] font-black font-['Oswald'] text-slate-300/80 group-hover:text-red-200/80 leading-none tracking-tighter select-none transition-all duration-300 block group-hover:scale-105">
+                24
+              </span>
+              
+              {/* Minimal Text Overlay */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                <span className="text-[8px] sm:text-[9px] font-bold uppercase tracking-wider text-slate-500 group-hover:text-[var(--brand-red)] transition-colors mt-0.5 font-['Oswald']">
+                  HOURS RAPID DISPATCH
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
     </>
   );
