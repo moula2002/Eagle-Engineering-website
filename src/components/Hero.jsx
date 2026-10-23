@@ -87,7 +87,7 @@ export const Hero = () => {
                 </div>
                 <div className="flex flex-col text-left min-w-0">
                   <div className="text-2xl sm:text-3xl lg:text-3xl xl:text-4xl font-extrabold text-[#0B2545] leading-none flex items-baseline tracking-tight">
-                    <Counter from={0} to={15} duration={1.5} suffix="+" />
+                    <Counter from={0} to={16} duration={1.5} suffix="+" />
                   </div>
                   <div className="text-[11px] sm:text-xs font-bold text-[#0B2545] uppercase tracking-wider mt-1.5 truncate">
                     INDUSTRIES SERVED

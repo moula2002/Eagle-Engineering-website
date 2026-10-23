@@ -16,13 +16,17 @@ import {
   Building2,
   Wind,
   ShieldCheck,
-  ArrowDown
+  ArrowDown,
+  SignpostBig,
+  Bus,
+  Container
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Counter } from '../components/Counter';
 import fastener1 from '../assets/fastener_1.png';
 import fastener2 from '../assets/fastener_2.png';
+import warehouseFacilityImg from '../assets/new.jpeg';
 import { getProducts, getImageUrl } from '../api/api';
 import { resolveProductImage } from '../data/productDataHelper';
 import { ProductImage } from '../components/ProductImage';
@@ -40,6 +44,9 @@ import indFacadeCurtain from '../assets/industries/ind_facade_curtain.jpg';
 import indWarehouseSheds from '../assets/industries/ind_warehouse_sheds.jpg';
 import indCommercialBldg from '../assets/industries/ind_commercial_bldg.jpg';
 import indHvacMep from '../assets/industries/ind_hvac_mep.jpg';
+import indSignageBoard from '../assets/industries/ind_signage_board.jpg';
+import indBusCoach from '../assets/industries/ind_bus_coach.jpg';
+import indModularCabin from '../assets/industries/ind_modular_cabin.jpg';
 
 const industriesList = [
   {
@@ -145,6 +152,30 @@ const industriesList = [
     description: 'Continuously threaded rods, beam clamps, and duct screws for secure overhead suspensions.',
     backDescription: 'M6-M24 threaded rods, channel strut nuts, and drop-in anchors for ventilation and piping routes.',
     badge: 'Fire & Load Rated'
+  },
+  {
+    name: 'SIGNAGE & BOARD INDUSTRIES',
+    icon: SignpostBig,
+    image: indSignageBoard,
+    description: 'Self-drilling screws and fixing solutions for ACP, signage boards and cladding applications.',
+    backDescription: 'Specialized self-drilling screws and fixing solutions engineered for ACP panels, outdoor signage boards, and architectural cladding.',
+    badge: 'Signage & Cladding'
+  },
+  {
+    name: 'BUS BODY & COACH BUILDING',
+    icon: Bus,
+    image: indBusCoach,
+    description: 'Specialized fasteners for bus body fabrication, panels, interior fittings and structural assemblies.',
+    backDescription: 'High-vibration resistant screws, structural rivets, and precision fasteners for commercial vehicle bodies, coaches, and panel fittings.',
+    badge: 'Automotive & Coach'
+  },
+  {
+    name: 'PORTABLE CABIN & MODULAR STRUCTURES',
+    icon: Container,
+    image: indModularCabin,
+    description: 'Self-drilling screws and structural fasteners for modular cabins and prefabricated units.',
+    backDescription: 'Heavy-duty self-drilling screws, frame connectors, and corrosion-resistant fasteners for prefab cabins, containers, and modular structures.',
+    badge: 'Prefab & Modular'
   }
 ];
 
@@ -283,7 +314,7 @@ export const Home = () => {
             >
               <div className="absolute inset-0 bg-[var(--brand-blue)] rounded-2xl rotate-3 scale-105 opacity-10"></div>
               <div className="bg-white p-2 rounded-2xl shadow-[0_20px_40px_rgb(0,0,0,0.1)] relative z-10 overflow-hidden group">
-                <img src="https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80" alt="Precision Engineering" className="w-full h-[400px] object-cover rounded-xl group-hover:scale-105 transition-transform duration-700" loading="lazy" decoding="async" />
+                <img src={warehouseFacilityImg} alt="Eagle Engineering Warehouse Facility" className="w-full h-[400px] object-cover rounded-xl group-hover:scale-105 transition-transform duration-700" loading="lazy" decoding="async" />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#0b2545]/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-xl pointer-events-none"></div>
               </div>
 
@@ -305,7 +336,7 @@ export const Home = () => {
       <WhyChooseUs />
 
       {/* Industries Section */}
-      <section id="industries" className="bg-gray-50 pb-20 pt-16 sm:pb-24 sm:pt-20 relative z-20 bg-industrial-pattern border-b border-gray-100">
+      <section id="industries" className="bg-gray-50 pb-6 pt-16 sm:pb-8 sm:pt-20 relative z-20 bg-industrial-pattern border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
           {/* Section Heading */}
@@ -335,13 +366,13 @@ export const Home = () => {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: 0.05 * (idx % 4), duration: 0.4 }}
-                  className="group h-[280px] w-full flip-card-container cursor-pointer select-none"
+                  className="group h-[310px] sm:h-[320px] w-full flip-card-container cursor-pointer select-none"
                   onClick={() => handleIndustryCardClick(idx)}
                 >
-                  <div className={`flip-card-inner rounded-2xl ${isFlipped ? 'is-flipped' : ''}`}>
+                  <div className={`flip-card-inner rounded-3xl ${isFlipped ? 'is-flipped' : ''}`}>
                     {/* Front */}
-                    <div className="flip-card-front bg-white rounded-2xl border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] flex flex-col items-center justify-center text-center p-6 sm:p-7">
-                      <div className="relative mb-3.5 w-16 h-16 sm:w-18 sm:h-18 rounded-2xl overflow-hidden shadow-xs border border-slate-200/90 group-hover:border-[var(--brand-red)] group-hover:scale-105 transition-all duration-300 shrink-0 bg-slate-50">
+                    <div className="flip-card-front bg-white rounded-3xl border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] flex flex-col items-center justify-center text-center p-6 sm:p-7">
+                      <div className="relative mb-4 w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden shadow-xs shrink-0 bg-slate-50">
                         <img 
                           src={industry.image} 
                           alt={industry.name} 
@@ -358,8 +389,8 @@ export const Home = () => {
                     </div>
 
                     {/* Back */}
-                    <div className="flip-card-back bg-[#0b2545] rounded-2xl flex flex-col items-center justify-center text-center p-6 sm:p-7 border border-[#0b2545] shadow-[0_12px_36px_rgba(11,37,69,0.35)]">
-                      <div className="w-11 h-11 rounded-xl overflow-hidden border border-red-500/40 mb-3 shrink-0 shadow-xs">
+                    <div className="flip-card-back bg-[#0b2545] rounded-3xl flex flex-col items-center justify-center text-center p-6 sm:p-7 border border-[#0b2545] shadow-[0_12px_36px_rgba(11,37,69,0.35)]">
+                      <div className="w-14 h-14 rounded-2xl overflow-hidden border border-red-500/40 mb-3 shrink-0 shadow-xs">
                         <img 
                           src={industry.image} 
                           alt={industry.name} 
@@ -381,49 +412,30 @@ export const Home = () => {
                 </motion.div>
               );
             })}
+          </div>
 
-            {/* 24 Card with 24 BG Watermark (Content Removed as Requested) */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.1, duration: 0.5 }}
+          {/* 24 Watermark on Right Side (Compact Height) */}
+          <div className="mt-2 sm:mt-3 relative flex items-center justify-end overflow-hidden py-1 px-2 sm:px-6">
+            <div
               onClick={() => {
                 const el = document.getElementById('products-section');
-                if (el) {
-                  el.scrollIntoView({ behavior: 'smooth' });
-                }
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
               }}
-              className="col-span-1 sm:col-span-1 lg:col-span-3 h-[280px] rounded-2xl bg-white border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] flex items-center justify-center sm:justify-end pr-0 sm:pr-12 md:pr-20 cursor-pointer group transition-all duration-300 relative overflow-hidden select-none"
+              className="relative flex items-center justify-center cursor-pointer group select-none pr-0 sm:pr-4"
+              title="Click to explore products"
             >
-              {/* Ambient background glows */}
-              <div className="absolute -top-12 -right-12 w-48 h-48 bg-red-500/5 rounded-full blur-2xl pointer-events-none group-hover:scale-125 transition-transform duration-500" />
-              <div className="absolute -bottom-10 -left-10 w-44 h-44 bg-[#0b2545]/5 rounded-full blur-2xl pointer-events-none" />
-
-              {/* Right Side Corner Container for 24 Watermark & Action */}
-              <div className="relative flex items-center justify-center w-64 sm:w-72 md:w-80 h-full">
-                {/* Giant 24 Number BG Watermark */}
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none z-0">
-                  <span className="text-[170px] sm:text-[220px] md:text-[250px] font-black font-['Oswald'] text-slate-200/80 group-hover:text-red-100/70 leading-none tracking-tighter select-none transition-all duration-500 block group-hover:scale-105">
-                    24
-                  </span>
-                </div>
-
-                {/* Minimal Foreground Action */}
-                <div className="relative z-10 flex flex-col items-center justify-center text-center">
-                  <span className="text-xs sm:text-sm font-bold uppercase tracking-widest text-gray-400 group-hover:text-[var(--brand-red)] transition-colors mb-2">
-                    Explore Products
-                  </span>
-                  <motion.div
-                    animate={{ y: [0, 6, 0] }}
-                    transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
-                    className="w-11 h-11 rounded-full bg-white border border-slate-200/90 shadow-sm flex items-center justify-center text-gray-400 group-hover:text-white group-hover:bg-[var(--brand-red)] group-hover:border-[var(--brand-red)] transition-all duration-300"
-                  >
-                    <ArrowDown className="w-5 h-5 stroke-[2.2]" />
-                  </motion.div>
-                </div>
+              {/* Compact 24 Number BG Watermark */}
+              <span className="text-[65px] sm:text-[80px] md:text-[95px] font-black font-['Oswald'] text-slate-300/80 group-hover:text-red-200/80 leading-none tracking-tighter select-none transition-all duration-300 block group-hover:scale-105">
+                24
+              </span>
+              
+              {/* Minimal Text Overlay */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                <span className="text-[8px] sm:text-[9px] font-bold uppercase tracking-wider text-slate-500 group-hover:text-[var(--brand-red)] transition-colors mt-0.5 font-['Oswald']">
+                  HOURS RAPID DISPATCH
+                </span>
               </div>
-            </motion.div>
+            </div>
           </div>
         </div>
       </section>
