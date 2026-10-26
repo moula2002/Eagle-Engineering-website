@@ -188,9 +188,12 @@ export const resolveProductImage = (product) => {
     const trimmed = rawImage.trim();
 
     // Backend uploads from admin panel (/uploads/...)
-    if (trimmed.startsWith('/uploads')) {
-      const baseUrl = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : 'https://eagle-engineering-server-15wn.onrender.com';
-      return `${baseUrl}${trimmed}`;
+    if (trimmed.startsWith('/uploads') || trimmed.startsWith('uploads/')) {
+      const cleanPath = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+      const baseUrl = import.meta.env.VITE_API_URL 
+        ? import.meta.env.VITE_API_URL.replace('/api', '') 
+        : (import.meta.env.DEV ? '' : 'https://eagle-engineering-server-15wn.onrender.com');
+      return `${baseUrl}${cleanPath}`;
     }
 
     // Direct dynamic base64 image, external URL, or static path

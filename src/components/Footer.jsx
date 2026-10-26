@@ -41,7 +41,7 @@ export const Footer = () => {
   return (
     <footer className="bg-[#0b2545] text-white pt-14 sm:pt-16 pb-0 mt-auto border-t-4 border-[#E31E24] relative select-none">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
-        
+
         {/* Exact 4-Column Footer Grid Layout */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-8 pb-14">
 
@@ -58,8 +58,8 @@ export const Footer = () => {
             <ul className="space-y-3">
               {quickLinks.map((link) => (
                 <li key={link.name}>
-                  <Link 
-                    to={link.path} 
+                  <Link
+                    to={link.path}
                     onClick={(e) => handleQuickLink(e, link.path)}
                     className="text-gray-300 text-xs sm:text-[13.5px] hover:text-[#E31E24] transition-colors flex items-center group font-normal"
                   >
@@ -178,11 +178,11 @@ export const Footer = () => {
             <p className="text-gray-300 text-xs sm:text-[13px] leading-relaxed font-light mb-5">
               Looking for high-quality fasteners, anchors, uPVC hardware, chipboard screws or drywall screws? Contact our team for product information, competitive quotations and reliable supply.
             </p>
-            
+
             {/* Glowing Request A Quote Button */}
             <div className="mb-6">
-              <Link 
-                to="/contact" 
+              <Link
+                to="/contact"
                 className="w-full max-w-[240px] py-3.5 px-6 bg-[#E31E24] hover:bg-red-700 text-white text-xs sm:text-sm font-bold uppercase tracking-wider rounded-xl transition-all shadow-[0_6px_22px_rgba(227,30,36,0.45)] hover:shadow-[0_8px_28px_rgba(227,30,36,0.6)] hover:-translate-y-0.5 flex items-center justify-center gap-2.5"
               >
                 <span className="w-2.5 h-2.5 rounded-full bg-white shrink-0"></span>
@@ -192,28 +192,28 @@ export const Footer = () => {
 
             {/* Social Media Text Only */}
             <div className="flex items-center space-x-2.5 text-xs sm:text-sm font-medium text-gray-300">
-              <a 
-                href="https://www.linkedin.com/company/eaglefasteners/" 
-                target="_blank" 
-                rel="noopener noreferrer" 
+              <a
+                href="https://www.linkedin.com/company/eaglefasteners/"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="hover:text-[var(--brand-red)] transition-colors"
               >
                 LinkedIn
               </a>
               <span className="text-gray-500">|</span>
-              <a 
-                href="https://www.facebook.com/ieagleng/?modal=admin_todo_tour" 
-                target="_blank" 
-                rel="noopener noreferrer" 
+              <a
+                href="https://www.facebook.com/ieagleng/?modal=admin_todo_tour"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="hover:text-[var(--brand-red)] transition-colors"
               >
                 Facebook
               </a>
               <span className="text-gray-500">|</span>
-              <a 
-                href="https://www.instagram.com/ieagleng/" 
-                target="_blank" 
-                rel="noopener noreferrer" 
+              <a
+                href="https://www.instagram.com/ieagleng/"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="hover:text-[var(--brand-red)] transition-colors"
               >
                 Instagram

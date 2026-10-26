@@ -72,7 +72,26 @@ export const SubCategories = () => {
     };
 
     fetchData();
-    return () => { isMounted = false; };
+
+    const handleCategoriesUpdated = (e) => {
+      if (isMounted && Array.isArray(e.detail)) {
+        setCategoriesList(e.detail);
+      }
+    };
+    const handleSubCategoriesUpdated = (e) => {
+      if (isMounted && Array.isArray(e.detail)) {
+        setSubCategoriesList(e.detail);
+      }
+    };
+
+    window.addEventListener('eagle_categories_updated', handleCategoriesUpdated);
+    window.addEventListener('eagle_subcategories_updated', handleSubCategoriesUpdated);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener('eagle_categories_updated', handleCategoriesUpdated);
+      window.removeEventListener('eagle_subcategories_updated', handleSubCategoriesUpdated);
+    };
   }, []);
 
   const currentSubCategories = subCategoriesList.filter(sc => {

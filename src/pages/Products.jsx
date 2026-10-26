@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Search, FolderTree, X, Layers, Filter } from 'lucide-react';
+import { Search, FolderTree, X, Layers, Filter, RefreshCw } from 'lucide-react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { getProducts, getCategories, getSubCategories, getImageUrl } from '../api/api';
+import { getProducts, getCategories, getSubCategories, getImageUrl, refreshAllData } from '../api/api';
 import { resolveProductImage, parseProductContent } from '../data/productDataHelper';
 import { ProductImage } from '../components/ProductImage';
 
@@ -78,13 +78,13 @@ export const Products = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const categoryScrollRef = useRef(null);
 
-  // Read initial states from URL params -> route state -> sessionStorage -> default
+  // Read initial states from URL params -> route state -> default ('All Products')
   const paramCategory = searchParams.get('category');
   const paramSubCategory = searchParams.get('subCategory');
   const paramSearch = searchParams.get('search');
 
-  const initialCat = paramCategory || location.state?.selectedCategory || sessionStorage.getItem('eagle_selected_category') || 'All Products';
-  const initialSubCat = paramSubCategory || location.state?.selectedSubCategory || sessionStorage.getItem('eagle_selected_subcategory') || 'All';
+  const initialCat = paramCategory || location.state?.selectedCategory || 'All Products';
+  const initialSubCat = paramSubCategory || location.state?.selectedSubCategory || 'All';
   const initialSearchVal = paramSearch || '';
 
   // Clean server-only data initialization
@@ -92,6 +92,7 @@ export const Products = () => {
   const [categoriesList, setCategoriesList] = useState([]);
   const [subCategoriesList, setSubCategoriesList] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState(initialSearchVal);
   
   const [selectedCategory, setSelectedCategory] = useState(initialCat);
@@ -105,25 +106,24 @@ export const Products = () => {
 
     if (urlCat) {
       setSelectedCategory(urlCat);
-      sessionStorage.setItem('eagle_selected_category', urlCat);
     } else if (location.state?.selectedCategory) {
       setSelectedCategory(location.state.selectedCategory);
-      sessionStorage.setItem('eagle_selected_category', location.state.selectedCategory);
+    } else {
+      setSelectedCategory('All Products');
     }
 
     if (urlSub) {
       setSelectedSubCategory(urlSub);
-      sessionStorage.setItem('eagle_selected_subcategory', urlSub);
     } else if (location.state?.selectedSubCategory) {
       setSelectedSubCategory(location.state.selectedSubCategory);
-      sessionStorage.setItem('eagle_selected_subcategory', location.state.selectedSubCategory);
-    } else if (urlCat || location.state?.selectedCategory) {
+    } else {
       setSelectedSubCategory('All');
-      sessionStorage.setItem('eagle_selected_subcategory', 'All');
     }
 
     if (urlSearch !== null && urlSearch !== undefined) {
       setSearchQuery(urlSearch);
+    } else {
+      setSearchQuery('');
     }
   }, [searchParams, location.state]);
 
@@ -131,8 +131,6 @@ export const Products = () => {
   const handleCategorySelect = (cat) => {
     setSelectedCategory(cat);
     setSelectedSubCategory('All');
-    sessionStorage.setItem('eagle_selected_category', cat);
-    sessionStorage.setItem('eagle_selected_subcategory', 'All');
 
     setSearchParams(prev => {
       const next = new URLSearchParams(prev);
@@ -148,7 +146,6 @@ export const Products = () => {
 
   const handleSubCategorySelect = (subName) => {
     setSelectedSubCategory(subName);
-    sessionStorage.setItem('eagle_selected_subcategory', subName);
 
     setSearchParams(prev => {
       const next = new URLSearchParams(prev);
@@ -181,16 +178,22 @@ export const Products = () => {
     setSelectedCategory('All Products');
     setSelectedSubCategory('All');
     setSearchQuery('');
-    sessionStorage.setItem('eagle_selected_category', 'All Products');
-    sessionStorage.setItem('eagle_selected_subcategory', 'All');
     setSearchParams({}, { replace: true });
+  };
+
+  const handleManualRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await refreshAllData();
+    } finally {
+      setTimeout(() => setIsRefreshing(false), 600);
+    }
   };
 
   // Background revalidation (Stale-While-Revalidate)
   useEffect(() => {
     let isMounted = true;
     const fetchLatestData = async () => {
-      // Don't show blocking loading if we already have data in state or session
       if (productsList.length === 0) {
         setLoading(true);
       }
@@ -204,18 +207,12 @@ export const Products = () => {
         if (isMounted) {
           if (productsRes.status === 'fulfilled' && productsRes.value?.success && Array.isArray(productsRes.value.data)) {
             setProductsList(productsRes.value.data);
-          } else {
-            setProductsList([]);
           }
           if (categoriesRes.status === 'fulfilled' && categoriesRes.value?.success && Array.isArray(categoriesRes.value.data)) {
             setCategoriesList(categoriesRes.value.data);
-          } else {
-            setCategoriesList([]);
           }
           if (subCategoriesRes.status === 'fulfilled' && subCategoriesRes.value?.success && Array.isArray(subCategoriesRes.value.data)) {
             setSubCategoriesList(subCategoriesRes.value.data);
-          } else {
-            setSubCategoriesList([]);
           }
         }
       } catch (error) {
@@ -301,14 +298,16 @@ export const Products = () => {
       let matchesCategory = true;
       if (selCatNorm !== 'all products') {
         const pCatName = (p.category?.name || (typeof p.category === 'string' ? p.category : '')).trim().toLowerCase().replace(/-/g, ' ');
-        matchesCategory = pCatName === selCatNorm;
+        const pCatId = (p.category?._id || '').trim();
+        matchesCategory = pCatName === selCatNorm || pCatId === selectedCategory.trim();
       }
 
       // 2. Subcategory Filter
       let matchesSubCategory = true;
       if (selSubNorm !== 'all') {
-        const pSubName = (p.subCategory?.name || (typeof p.subCategory === 'string' ? p.subCategory : '')).trim().toLowerCase();
-        matchesSubCategory = pSubName === selSubNorm;
+        const pSubName = (p.subCategory?.name || (typeof p.subCategory === 'string' ? p.subCategory : '')).trim().toLowerCase().replace(/-/g, ' ');
+        const pSubId = (p.subCategory?._id || '').trim();
+        matchesSubCategory = pSubName === selSubNorm || pSubId === selectedSubCategory.trim();
       }
 
       // 3. Search Filter
@@ -427,8 +426,8 @@ export const Products = () => {
               </p>
             </div>
             
-            {/* Search Input - Full width on mobile */}
-            <div className="w-full md:w-auto flex justify-end">
+            {/* Search Input & Refresh Button */}
+            <div className="w-full md:w-auto flex items-center gap-2 justify-end">
               <div className="flex w-full md:w-80 lg:w-96 shadow-[0_4px_20px_rgb(0,0,0,0.04)] rounded-xl overflow-hidden border border-gray-200/80 bg-white focus-within:border-[var(--brand-red)] transition-all">
                 <input 
                   type="text" 
@@ -453,6 +452,15 @@ export const Products = () => {
                   <Search className="w-4 h-4" />
                 </button>
               </div>
+
+              <button
+                onClick={handleManualRefresh}
+                disabled={isRefreshing}
+                className="p-2.5 sm:p-3 bg-white hover:bg-gray-50 border border-gray-200/80 rounded-xl shadow-[0_4px_20px_rgb(0,0,0,0.04)] text-gray-600 hover:text-[var(--brand-red)] transition-all flex items-center justify-center shrink-0 disabled:opacity-50"
+                title="Refresh products from server"
+              >
+                <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-[var(--brand-red)]' : ''}`} />
+              </button>
             </div>
           </motion.div>
 
