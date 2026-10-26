@@ -333,7 +333,7 @@ export const ProductDetails = () => {
                 state={{ productName: product.name, productImage: mainImg }}
                 className="w-full sm:w-auto inline-flex justify-center items-center px-7 py-3.5 bg-[#e53524] text-white text-xs sm:text-sm font-bold rounded-xl hover:bg-red-700 transition-all uppercase tracking-wider shadow-[0_4px_14px_0_rgba(229,53,36,0.39)] active:scale-[0.98]"
               >
-                Request Quote
+                Request A Quote
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Link>
               
